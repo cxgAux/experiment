@@ -42,6 +42,24 @@ SeqInfo createWith_resolution_w_h_frames_length (int w, int h, int len) {
     return SeqInfo(w, h, len);
 }
 
+SeqInfo fromVideo(cv::VideoCapture & _video) {
+    cv::Mat _frame;
+    int _w, _h, _fc = 0;
+    while(true) {
+        _video >> _frame;
+        if(_frame.empty()) {
+            break;
+        }
+        if(_fc == 0) {
+            _w = _frame.cols;
+            _h = _frame.rows;
+        }
+        _fc ++;
+    }
+    _video.set(cv::CAP_PROP_POS_FRAMES , 0);
+    return SeqInfo(_w, _h, _fc);
+}
+
 /**
  *  @brief  parameters for tracking
  */
@@ -140,5 +158,23 @@ public:
 
     }
 };
+
+/**
+ *  @brief  kernel Matrix base creation
+ */
+cv::Mat createWith_bins_nBins_kernelRadius(int binCount, int nBins, int guassSmooth) {
+    cv::Mat _res(binCount, nBins, CV_32FC1);
+    float _denseBase = (2 * M_PI) / float(binCount), \
+        _binBase = (2 * M_PI) / float(nBins);
+    for(int iRow = 0; iRow < binCount; ++ iRow) {
+        float * _pRow = _res.ptr<float>(iRow);
+        for(int iCol = 0; iCol < nBins; ++ iCol) {
+            float _diff_f = std::cos(iRow * _denseBase) - std::cos(iCol * _binBase), \
+                _diff_s = std::sin(iRow * _denseBase) - std::sin(iCol * _binBase);
+            _pRow[iCol] = std::exp(- guassSmooth * (std::pow(_diff_f, 2.0f) +std::pow(_diff_s, 2.0f)));
+        }
+    }
+    return _res;
+}
 
 #endif// ! _STRUCTURES_HPP_
