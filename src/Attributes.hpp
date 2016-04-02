@@ -9,7 +9,7 @@
 static int __start_frame = 0;
 static int __end_frame = std::numeric_limits<int>::max();
 static int __scale_nums = 8;
-static int __scale_stride = std::sqrt(2.0);
+static float __scale_stride = std::sqrt(2.0);
 
 /**
  *  @brief  parameters for descriptors
