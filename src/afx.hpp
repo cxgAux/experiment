@@ -12,6 +12,7 @@
 #include <limits>
 #include <cmath>
 #include <cstdarg>
+#include <cstdlib>
 
 #define _DEBUG_
 

@@ -48,7 +48,13 @@ SeqInfo createWith_resolution_w_h_frames_length (int w, int h, int len) {
 typedef struct TrackInfo {
     int _length, _gap;
     TrackInfo (int len, int gap)
-        : _length(len), _gap(gap) {}
+        : _length(len), _gap(gap) {
+        static int __count = 200;
+        char * __buff = new char [__count];
+        sprintf(__buff, "Tracking parameters\n[\n\ttrajectory length:\t%d\n\tSample gap:\t%d\n]\n", _length, _gap);
+        _log(__buff);
+        delete [] __buff;
+    }
 } TrackInfo;
 
 TrackInfo createWith_TrajLength_SampleGap (int len, int gap) {
@@ -64,7 +70,14 @@ typedef struct DescInfo {
     int _dim;// the dimension(Without temporal dimension)
     int _width, _height;// the size of the cross-section
     DescInfo (bool isHof, int nxCells, int nyCells, int ntCells, int nBins, int w, int h)
-        : _isHof(isHof), _nxCells(nxCells), _nyCells(nyCells), _ntCells(ntCells), _nBins(nBins), _dim(_nxCells * _nyCells * _nBins), _width(w), _height(h) {}
+        : _isHof(isHof), _nxCells(nxCells), _nyCells(nyCells), _ntCells(ntCells), _nBins(nBins), _dim(_nxCells * _nyCells * _nBins), _width(w), _height(h) {
+        static int __count = 200;
+        char * __buff = new char [__count];
+        sprintf(__buff, "Descriptor infomation\n[\n\tis type of Hof:\t%d\n\t(nxCells, nyCells, ntCells, nBins):\t(%d, %d, %d, %d)-->dim: %d\n\tcross-section size(w, h):\t(%d, %d)\n]\n",
+            _isHof, _nxCells, _nyCells, _ntCells, _nBins, _dim, _width, _height);
+        _log(__buff);
+        delete [] __buff;
+    }
 } DescInfo;
 
 DescInfo createWith_isHofFlag_cubePartition_xy_t_b_crossSection_w_h (bool isHof, int nxyCells, int ntCells, int nBins, int w, int h) {
@@ -78,7 +91,13 @@ typedef struct DescMat {
     int _width, _height, _nBins;
     float * _desc;
     DescMat (int w, int h, int bins)
-        : _width(w), _height(h), _nBins(bins), _desc(new float[_width * _height * _nBins]) {}
+        : _width(w), _height(h), _nBins(bins), _desc(new float[_width * _height * _nBins]) {
+        static int __count = 200;
+        char * __buff = new char [__count];
+        sprintf(__buff, "New Descriptor\n[\n\twidth:\t%d\n\theight:\t%d\n\tnBins:\t%d\n]\n", _width, _height, _nBins);
+        _log(__buff);
+        delete [] __buff;
+    }
 } DescMat;
 
 DescMat createWith_w_h_b (int w, int h, int b) {
