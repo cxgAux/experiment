@@ -162,7 +162,7 @@ public:
 /**
  *  @brief  kernel Matrix base creation
  */
-cv::Mat createWith_bins_nBins_kernelRadius(int binCount, int nBins, int guassSmooth) {
+cv::Mat createWith_bins_nBins_kernelRadius (int binCount, int nBins, int guassSmooth) {
     cv::Mat _res(binCount, nBins, CV_32FC1);
     float _denseBase = (2 * M_PI) / float(binCount), \
         _binBase = (2 * M_PI) / float(nBins);
@@ -175,6 +175,42 @@ cv::Mat createWith_bins_nBins_kernelRadius(int binCount, int nBins, int guassSmo
         }
     }
     return _res;
+}
+
+/**
+ *  @brief  pixel pyramid construction and restoration
+ */
+void InitPry (int rows, int cols, std::vector<float> & fscales, std::vector<cv::Size> & sizes) {
+    float _min_size = std::min<int>(rows, cols);
+    int _nLayers = 0;
+    while (_min_size >= __patch_size) {
+        _min_size /= __scale_stride;
+        _nLayers ++;
+    }
+
+    if(_nLayers == 0) {
+        _nLayers ++;
+    }
+
+    __scale_nums = std::min<int>(__scale_nums, _nLayers);
+
+    fscales.resize(__scale_nums);
+    sizes.resize(__scale_nums);
+
+    fscales[0] = 1.f;
+    sizes[0] = cv::Size(cols, rows);
+
+    for(int iLayer = 1; iLayer < __scale_nums; ++ iLayer) {
+        fscales[iLayer] = fscales[iLayer - 1] * __scale_stride;
+        sizes[iLayer] = cv::Size(cvRound(cols / fscales[iLayer]), cvRound(rows / fscales[iLayer]));
+    }
+}
+
+/**
+ *  @brief  consturct pyramid
+ */
+void BuildPyr() {
+    
 }
 
 #endif// ! _STRUCTURES_HPP_
