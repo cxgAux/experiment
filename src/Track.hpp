@@ -36,15 +36,15 @@ int Track(int argc, char ** argv) {
             }
 
             //buffers
-            cv::Mat _frame, _image, _prev_gray, _grey;
+            cv::Mat _frame, _image, _prev_grey, _grey;
 
             //for pixel pyramid generation and restoration
             std::vector<float> _fscales(0);
             std::vector<cv::Size> _sizes(0);
 
-            //pixel pyramids
+            //pyramids
             std::vector<cv::Mat> _prev_grey_pyr(0), _grey_pyr(0), _flow_pyr(0);
-            //flow pyramids
+            //aux pyramids
             std::vector<cv::Mat> _prev_poly_pyr(0), _poly_pyr(0);
             //tracker
             std::vector< std::list<Trajectory> > _xyScaleTracks;
@@ -69,9 +69,20 @@ int Track(int argc, char ** argv) {
                     if(_frame_idx == __start_frame) {
                         _image.create(_frame.size(), CV_8UC3);
                         _grey.create(_frame.size(), CV_8UC1);
-                        _prev_gray.create(_frame.size(), CV_8UC1);
+                        _prev_grey.create(_frame.size(), CV_8UC1);
 
                         InitPry(_frame.rows, _frame.cols, _fscales, _sizes);
+                        BuildPyr(_sizes, CV_8UC1, _prev_grey_pyr);
+                        BuildPyr(_sizes, CV_8UC1, _grey_pyr);
+
+                        BuildPyr(_sizes, CV_32FC2, _flow_pyr);
+                        BuildPyr(_sizes, CV_32FC(5), _prev_poly_pyr);
+                        BuildPyr(_sizes, CV_32FC(5), _poly_pyr);
+
+                        _xyScaleTracks.resize(__scale_nums);
+
+                        _frame.copyTo(_image);
+                        cvtColor(_image, _prev_grey, CV_BGR2GRAY);
                     }
                 }
 

@@ -209,8 +209,13 @@ void InitPry (int rows, int cols, std::vector<float> & fscales, std::vector<cv::
 /**
  *  @brief  consturct pyramid
  */
-void BuildPyr() {
-    
+void BuildPyr(std::vector<cv::Size> sizes, int type, std::vector<cv::Mat> & pyramid) {
+    int _nLayers = (int)sizes.size();
+    pyramid.resize(_nLayers);
+
+    for(int iLayer = 0; iLayer < _nLayers; ++ iLayer) {
+        pyramid[iLayer].create(sizes[iLayer], type);
+    }
 }
 
 #endif// ! _STRUCTURES_HPP_
