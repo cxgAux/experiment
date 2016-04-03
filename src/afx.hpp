@@ -21,7 +21,7 @@
     #include <fstream>
     #include <cstdio>
     #define _log(x) fprintf(stdout, "\033[34m LOG >>\033[32m%s\033[m", x);
-    #define _err(x) fprintf(stderr, "\033[33m LOG >>\033[31m%s\033[m", x);
+    #define _err(x) fprintf(stderr, "\033[33m ERR >>\033[31m%s\033[m", x);
 
 #else
     #define _log(x)
