@@ -44,7 +44,7 @@ SeqInfo createWith_resolution_w_h_frames_length (int w, int h, int len) {
 
 SeqInfo fromVideo(cv::VideoCapture & _video) {
     cv::Mat _frame;
-    int _w, _h, _fc = 0;
+    int _w = 0, _h = 0, _fc = 0;
     while(true) {
         _video >> _frame;
         if(_frame.empty()) {
@@ -153,7 +153,7 @@ class Trajectory : public SamplePoints, public Histogram {
 public:
     int _start_frame;
     float _saliency, _averageSaliency;
-    Trajectory (const cv::Point2f & point, const TrackInfo & trackInfo, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo, int start_frame, float saliency, float averageSaliency)
+    Trajectory (const cv::Point2f & point, const TrackInfo & trackInfo, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo, int start_frame, float saliency = 0.f, float averageSaliency = 0.f)
         : SamplePoints(trackInfo, point), Histogram(trackInfo, hogInfo, hofInfo, mbhInfo), _start_frame(start_frame), _saliency(saliency), _averageSaliency(averageSaliency) {
 
     }
