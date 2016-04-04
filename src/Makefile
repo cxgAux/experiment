@@ -1,7 +1,7 @@
 CC := g++
 CFLAGS := -O3 -ggdb -Wall -std=c++11
 BUILD := debug
-INCLUDE := -I/usr/local/include -I. -I./3rd
+INCLUDES := -I/usr/local/include -I./ -I./3rd/
 LIBS := -L/usr/local/lib \
 		-lopencv_core -lopencv_highgui -lopencv_video \
 		-lopencv_videoio -lopencv_imgproc
@@ -12,7 +12,7 @@ all : $(TARGET)
 $(TARGET) : $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(INCLUDES) $(LIBS)
 %.o : %.cpp
-	$(CC) $(CFLAGS) -c $^
+	$(CC) $(CFLAGS) -c $^ $(INCLUDES) $(LIBS)
 .PHONY : _cleanObjs
  _cleanObjs :
 	rm -rf *.o
