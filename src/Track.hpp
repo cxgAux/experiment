@@ -4,6 +4,8 @@
 #include "Attributes.hpp"
 #include "Structures.hpp"
 #include "VisualProc.hpp"
+#include "OpticalFlow.h"
+#include "Descriptor.hpp"
 
 bool __toDisplay = false;
 
@@ -29,7 +31,8 @@ int Track(int argc, char ** argv) {
             DescInfo _hogInfo = createWith_isHofFlag_cubePartition_xy_t_b_crossSection_w_h(false, __nxy_cells, __nt_cells, 8, __patch_size, __patch_size),
                 _hofInfo = createWith_isHofFlag_cubePartition_xy_t_b_crossSection_w_h(true, __nxy_cells, __nt_cells, 9, __patch_size, __patch_size),
                 _mbhInfo = createWith_isHofFlag_cubePartition_xy_t_b_crossSection_w_h(false, __nxy_cells, __nt_cells, 8, __patch_size, __patch_size);
-            SeqInfo _seqInfo = fromVideo(_capture);
+            //sequence info getter provided, but useless in the experiment
+            //SeqInfo _seqInfo = fromVideo(_capture);
             cv::Mat _kernelMatrix = createWith_bins_nBins_kernelRadius(__preset_bins, 8, __GaussSmooth);
 
             if(__toDisplay == true) {
@@ -94,13 +97,59 @@ int Track(int argc, char ** argv) {
                             //find good features to track defined in "VisualProc.hpp"
                             std::vector<cv::Point2f> _points(0);
                             DenseSample(_prev_grey_pyr[iScale], _points, __quality, __min_distance);
+
                             //save features inits
                             std::list<Trajectory> & _iScaleTrajList = _xyScaleTracks[iScale];
                             for(auto & initPoint : _points) {
                                 _iScaleTrajList.push_back(Trajectory(initPoint, _trackInfo, _hogInfo, _hofInfo, _mbhInfo, _frame_idx, 0, 0));
                             }
+
+                            //compute polinomial expansion
+                            my::FarnebackPolyExpPyr(_prev_grey, _prev_poly_pyr, _fscales, 7, 1.5);
                         }// end of for iScale
                     }// end of if(_frame_idx == __start_frame)
+                    else {
+                        _counter2Sample ++;
+                        _frame.copyTo(_image);
+                        cvtColor(_image, _grey, CV_BGR2GRAY);
+
+                        //in the journal version of "Dense Trajectory"
+                        //compute optical flow for all scales once
+                        my::FarnebackPolyExpPyr(_grey, _poly_pyr, _fscales, 7, 1.5);
+                        my::calcOpticalFlowFarneback(_prev_poly_pyr, _poly_pyr, _flow_pyr, 10, 2, __scale_stride);
+
+                        for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
+                            //build up pixel pyramid
+                            if(iScale == 0) {
+                                _grey.copyTo(_grey_pyr[0]);
+                            }
+                            else {
+                                cv::resize(_grey_pyr[iScale - 1], _grey_pyr[iScale], _grey_pyr[iScale].size(), 0, 0, cv::INTER_LINEAR);
+                            }
+
+                            int _width = _grey_pyr[iScale].cols, _height = _grey_pyr[iScale].rows;
+                            //compute all releated information
+                                //compute integral histograms
+                            DescMat * _hogImg = createWith_w_h_b(_width, _height, _hogInfo._nBins);
+                            HogComp(_prev_grey_pyr[iScale], _hogImg->_desc, _hogInfo, _kernelMatrix);
+
+                            DescMat * _hofImg = createWith_w_h_b(_width, _height, _hofInfo._nBins);
+                            HofComp(_flow_pyr[iScale], _hofImg->_desc, _hofInfo, _kernelMatrix);
+
+                            DescMat * _xMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins),
+                                * _yMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins);
+                            MbhComp(_flow_pyr[iScale], _xMbhImg->_desc, _yMbhImg->_desc, _mbhInfo, _kernelMatrix);
+                            //track
+
+                            //resample
+
+                            //garbage collection
+                            release(_hogImg);
+                            release(_hofImg);
+                            release(_xMbhImg);
+                            release(_yMbhImg);
+                        }// end for(int iScale = 0; iScale < __scale_nums; ++ iScale)
+                    } // end of if(_frame_idx == __start_frame) else
                 }//end of if(_frame_idx >= __start_frame && _frame_idx <= __end_frame)
 
                 _frame_idx ++;
