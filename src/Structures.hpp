@@ -118,8 +118,18 @@ typedef struct DescMat {
     }
 } DescMat;
 
-DescMat createWith_w_h_b (int w, int h, int b) {
-    return DescMat(w, h, b);
+DescMat * createWith_w_h_b (int w, int h, int b) {
+    return new DescMat(w, h, b);
+}
+
+void release(DescMat * descMat) {
+    if(descMat != nullptr) {
+        _log("descMat release\n")
+        if(descMat->_desc != nullptr) {
+            delete [] descMat->_desc;
+        }
+        delete descMat;
+    }
 }
 
 /**
