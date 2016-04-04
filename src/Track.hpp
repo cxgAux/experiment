@@ -3,6 +3,7 @@
 
 #include "Attributes.hpp"
 #include "Structures.hpp"
+#include "VisualProc.hpp"
 
 bool __toDisplay = false;
 
@@ -83,13 +84,29 @@ int Track(int argc, char ** argv) {
 
                         _frame.copyTo(_image);
                         cvtColor(_image, _prev_grey, CV_BGR2GRAY);
-                    }
-                }
+                        for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
+                            if(iScale == 0) {
+                                _prev_grey.copyTo(_prev_grey_pyr[0]);
+                            }
+                            else {
+                                cv::resize(_prev_grey_pyr[iScale - 1], _prev_poly_pyr[iScale], _prev_grey_pyr[iScale].size(), 0, 0, cv::INTER_LINEAR);
+                            }
+                            //find good features to track defined in "VisualProc.hpp"
+                            std::vector<cv::Point2f> _points(0);
+                            DenseSample(_prev_grey_pyr[iScale], _points, __quality, __min_distance);
+                            //save features inits
+                            std::list<Trajectory> & _iScaleTrajList = _xyScaleTracks[iScale];
+                            for(auto & initPoint : _points) {
+                                _iScaleTrajList.push_back(Trajectory(initPoint, _trackInfo, _hogInfo, _hofInfo, _mbhInfo, _frame_idx, 0, 0));
+                            }
+                        }// end of for iScale
+                    }// end of if(_frame_idx == __start_frame)
+                }//end of if(_frame_idx >= __start_frame && _frame_idx <= __end_frame)
 
                 _frame_idx ++;
-            }
-        }
-    }
-}
+            }//end of while(true)
+        }// else int _frame_idx = 0;
+    }//end of else cv::VideoCapture _capture;
+}//end of int Track(int argc, char ** argv)
 
 #endif// ! _TRACK_HPP_
