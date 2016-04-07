@@ -1,10 +1,10 @@
 CC := g++
 CFLAGS := -O3 -ggdb -Wall -std=c++11
 BUILD := debug
-INCLUDES := -I/usr/local/include -I./ -I./3rd/
+INCLUDES := -I/usr/local/include -I./ -I./3rd/ -I./util
 LIBS := -L/usr/local/lib \
 		-lopencv_core -lopencv_highgui -lopencv_video \
-		-lopencv_videoio -lopencv_imgproc
+		-lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs
 TARGET := $(BUILD)/Main
 OBJS := main.o
 .PHONY : all
