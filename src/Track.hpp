@@ -149,12 +149,20 @@ int Track(int argc, char ** argv) {
                             //compute saliency
                             cv::Mat _appearanceSaliencyMap, _motionSaliencyMap, _temporalSaliencyMap;
 
-                            float _averageAppearanceSaliency = calculateAppearcanceSaliencyMap(_prev_grey, _appearanceSaliencyMap);
+                            float _averageAppearanceSaliency = calculateAppearcanceSaliencyMap(_prev_grey_pyr[iScale], _appearanceSaliencyMap);
+                            float _averageMotionSaliency = calculateMotionSaliencyMap(_flow_pyr[iScale], _motionSaliencyMap);
 
-                            if(__toDisplay && iScale == 0) {
-                                DisplayWith_Image_TitlePrefix_TitleIndex(_appearanceSaliencyMap, __displayName[AS]);
-                                std::cout << "\t\t" << _averageAppearanceSaliency << std::endl;
+
+                            if(iScale == 0) {
+                                if(__toDisplay) {
+                                    Display(_appearanceSaliencyMap, AS);
+                                }
+                                if(__toSave) {
+                                    Save(_appearanceSaliencyMap, AS, _frame_idx);
+                                }
                             }
+
+
                             //track
                                 //collect all feature points
                             std::vector<cv::Point2f> _points2Track;

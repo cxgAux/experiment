@@ -40,11 +40,10 @@ void DenseSample(const cv::Mat & grey, std::vector<cv::Point2f> & points, const 
     }
 }
 
-enum DisplayIdx{TK = 0, AS = 1, MS = 2, TS = 3};
+enum Idx{TK = 0, AS = 1, MS = 2, TS = 3};
 static const std::string __displayName[] = {"Track", "Appearance Saliency", "Motion Salinecy", "Temporal Salinecy"};
 
-
-void DisplayWith_Image_TitlePrefix_TitleIndex(const cv::Mat & image, const std::string & windowName) {
+void Display(const cv::Mat & image, Idx idx) {
     cv::Mat _toDisplay(image.size(), CV_8U);
     for(int iRow = 0; iRow < image.rows; ++ iRow) {
         const float * pImage = image.ptr<float>(iRow);
@@ -53,8 +52,22 @@ void DisplayWith_Image_TitlePrefix_TitleIndex(const cv::Mat & image, const std::
             pDisplay[iCol] = uchar(pImage[iCol]);
         }
     }
-    cv::imshow(windowName, _toDisplay);
-    cv::waitKey(0);
+    cv::imshow(__displayName[idx], _toDisplay);
+    cv::waitKey(50);
+}
+
+static std::string __dir[] =  {"Track", "Appearance Saliency", "Motion Salinecy", "Temporal Salinecy"};
+void Save(const cv::Mat & image, Idx idx, int frameNo) {
+    cv::Mat __toSave(image.size(), CV_8U);
+    for(int iRow = 0; iRow < image.rows; ++ iRow) {
+        const float * pImage = image.ptr<float>(iRow);
+        uchar * pSave = __toSave.ptr<uchar>(iRow);
+        for(int iCol = 0; iCol < image.cols; ++ iCol) {
+            pSave[iCol] = uchar(pImage[iCol]);
+        }
+    }
+    std::string _buff = __dir[idx] + "/" + std::to_string(frameNo) + (".jpg");
+    cv::imwrite(_buff, __toSave);
 }
 
 #endif// ! _VISUALPROC_HPP_
