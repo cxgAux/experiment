@@ -6,8 +6,10 @@
 #include "VisualProc.hpp"
 #include "OpticalFlow.h"
 #include "Descriptor.hpp"
+#include "Saliency.hpp"
 
-bool __toDisplay = false;
+bool __toDisplay = true;
+bool __toSave = false;
 
 int Track(int argc, char ** argv) {
     if(argc < 2) {
@@ -36,7 +38,10 @@ int Track(int argc, char ** argv) {
             cv::Mat _kernelMatrix = createWith_bins_nBins_kernelRadius(__preset_bins, 8, __GaussSmooth);
 
             if(__toDisplay == true) {
-                cv::namedWindow("Track", cv::WINDOW_AUTOSIZE);
+                cv::namedWindow(__displayName[TK], 0);
+                cv::namedWindow(__displayName[AS], 0);
+                cv::namedWindow(__displayName[MS], 0);
+                cv::namedWindow(__displayName[TS], 0);
             }
 
             //buffers
@@ -128,6 +133,7 @@ int Track(int argc, char ** argv) {
                             }
 
                             int _width = _grey_pyr[iScale].cols, _height = _grey_pyr[iScale].rows;
+
                             //compute all releated information
                                 //compute integral histograms
                             DescMat * _hogImg = createWith_w_h_b(_width, _height, _hogInfo._nBins);
@@ -139,7 +145,23 @@ int Track(int argc, char ** argv) {
                             DescMat * _xMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins),
                                 * _yMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins);
                             MbhComp(_flow_pyr[iScale], _xMbhImg->_desc, _yMbhImg->_desc, _mbhInfo, _kernelMatrix);
+
+                            //compute saliency
+                            cv::Mat _appearanceSaliencyMap, _motionSaliencyMap, _temporalSaliencyMap;
+
+                            float _averageAppearanceSaliency = calculateAppearcanceSaliencyMap(_prev_grey, _appearanceSaliencyMap);
+
+                            if(__toDisplay && iScale == 0) {
+                                DisplayWith_Image_TitlePrefix_TitleIndex(_appearanceSaliencyMap, __displayName[AS]);
+                                std::cout << "\t\t" << _averageAppearanceSaliency << std::endl;
+                            }
                             //track
+                                //collect all feature points
+                            std::vector<cv::Point2f> _points2Track;
+                            for(auto _trajectory : _xyScaleTracks[iScale]) {
+                                _points2Track.push_back(_trajectory._points[_trajectory._idx]);
+                            }
+
 
                             //resample
 
@@ -149,6 +171,12 @@ int Track(int argc, char ** argv) {
                             release(_xMbhImg);
                             release(_yMbhImg);
                         }// end for(int iScale = 0; iScale < __scale_nums; ++ iScale)
+
+                        _grey.copyTo(_prev_grey);
+                        for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
+                            _grey_pyr[iScale].copyTo(_prev_grey_pyr[iScale]);
+                            _poly_pyr[iScale].copyTo(_prev_poly_pyr[iScale]);
+                        }
                     } // end of if(_frame_idx == __start_frame) else
                 }//end of if(_frame_idx >= __start_frame && _frame_idx <= __end_frame)
 
