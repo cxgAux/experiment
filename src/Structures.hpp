@@ -144,6 +144,7 @@ public:
         addPoint(point);
     }
     void addPoint (const cv::Point2f & point) {
+        _idx ++;
         _points[_idx] = point;
     }
     //<2016/04/01 22:46> remain unimplemted
