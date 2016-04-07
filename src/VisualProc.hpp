@@ -40,4 +40,21 @@ void DenseSample(const cv::Mat & grey, std::vector<cv::Point2f> & points, const 
     }
 }
 
+enum DisplayIdx{TK = 0, AS = 1, MS = 2, TS = 3};
+static const std::string __displayName[] = {"Track", "Appearance Saliency", "Motion Salinecy", "Temporal Salinecy"};
+
+
+void DisplayWith_Image_TitlePrefix_TitleIndex(const cv::Mat & image, const std::string & windowName) {
+    cv::Mat _toDisplay(image.size(), CV_8U);
+    for(int iRow = 0; iRow < image.rows; ++ iRow) {
+        const float * pImage = image.ptr<float>(iRow);
+        uchar * pDisplay = _toDisplay.ptr<uchar>(iRow);
+        for(int iCol = 0; iCol < image.cols; ++ iCol) {
+            pDisplay[iCol] = uchar(pImage[iCol]);
+        }
+    }
+    cv::imshow(windowName, _toDisplay);
+    cv::waitKey(0);
+}
+
 #endif// ! _VISUALPROC_HPP_
