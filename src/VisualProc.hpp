@@ -40,8 +40,8 @@ void DenseSample(const cv::Mat & grey, std::vector<cv::Point2f> & points, const 
     }
 }
 
-enum Idx{TK = 0, AS = 1, MS = 2, TS = 3};
-static const std::string __displayName[] = {"Track", "Appearance Saliency", "Motion Salinecy", "Temporal Salinecy"};
+enum Idx{TK = 0, AS = 1, MS = 2, TS = 3, JS = 4};
+static const std::string __displayName[] = {"Track", "Appearance Saliency", "Motion Salinecy", "Temporal Salinecy", "Joint Salinecy"};
 
 void Display(const cv::Mat & image, Idx idx) {
     cv::Mat _toDisplay(image.size(), CV_8U);
@@ -53,10 +53,10 @@ void Display(const cv::Mat & image, Idx idx) {
         }
     }
     cv::imshow(__displayName[idx], _toDisplay);
-    cv::waitKey(50);
+    cv::waitKey(1);
 }
 
-static std::string __dir[] =  {"Track", "Appearance Saliency", "Motion Salinecy", "Temporal Salinecy"};
+static std::string __dir[] =  {"Track", "Appearance Saliency", "Motion Salinecy", "Temporal Salinecy", "Joint Salinecy"};
 void Save(const cv::Mat & image, Idx idx, int frameNo) {
     cv::Mat __toSave(image.size(), CV_8U);
     for(int iRow = 0; iRow < image.rows; ++ iRow) {
