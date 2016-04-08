@@ -12,7 +12,7 @@ void BuildIntegralImage(
     const DescInfo & descInfo,
     const cv::Mat kernelMatrix
 ) {
-    static const float __2pi = 360.f;
+    static const float __2pi = 2 * M_PI;
     int _dims = descInfo._nBins;
     //0-bin for too weak flow
     int _bins = _dims - descInfo._isHof ? 1 : 0;
@@ -22,7 +22,6 @@ void BuildIntegralImage(
     for(int iHeight = 0; iHeight < _height; ++ iHeight) {
         const float * xcomp = xComp.ptr<float>(iHeight),
             * ycomp = yComp.ptr<float>(iHeight);
-
         //summarize current line
         std::vector<float> _sum(_dims);
         for(int iWidth = 0; iWidth < _width; ++ iWidth, ++ _idx) {
