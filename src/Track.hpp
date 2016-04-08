@@ -9,7 +9,7 @@
 #include "Saliency.hpp"
 
 bool __toDisplay = true;
-bool __toSave = false;
+bool __toSave = true;
 
 int Track(int argc, char ** argv) {
     if(argc < 2) {
@@ -42,6 +42,7 @@ int Track(int argc, char ** argv) {
                 cv::namedWindow(__displayName[AS], 0);
                 cv::namedWindow(__displayName[MS], 0);
                 cv::namedWindow(__displayName[TS], 0);
+                cv::namedWindow(__displayName[JS], 0);
             }
 
             //buffers
@@ -147,20 +148,26 @@ int Track(int argc, char ** argv) {
                             MbhComp(_flow_pyr[iScale], _xMbhImg->_desc, _yMbhImg->_desc, _mbhInfo, _kernelMatrix);
 
                             //compute saliency
-                            cv::Mat _appearanceSaliencyMap, _motionSaliencyMap, _temporalSaliencyMap;
+                            cv::Mat _appearanceSaliencyMap, _motionSaliencyMap, _temporalSaliencyMap, _saliencyMap;
 
                             float _averageAppearanceSaliency = calculateAppearcanceSaliencyMap(_prev_grey_pyr[iScale], _appearanceSaliencyMap);
-                            float _averageMotionSaliency = calculateMotionSaliencyMap(_flow_pyr[iScale], _motionSaliencyMap);
+                            float _averageMotionSaliency = calculateMotionSaliencyMap(_flow_pyr[iScale], _motionSaliencyMap, _hofInfo, _kernelMatrix);
 
+                            cv::addWeighted(_appearanceSaliencyMap, __alpha, _motionSaliencyMap, __beta, 0, _saliencyMap);
 
                             if(iScale == 0) {
                                 if(__toDisplay) {
                                     Display(_appearanceSaliencyMap, AS);
+                                    Display(_motionSaliencyMap, MS);
+                                    Display(_saliencyMap, JS);
                                 }
                                 if(__toSave) {
                                     Save(_appearanceSaliencyMap, AS, _frame_idx);
+                                    Save(_motionSaliencyMap, MS, _frame_idx);
+                                    Save(_saliencyMap, JS, _frame_idx);
                                 }
                             }
+
 
 
                             //track
