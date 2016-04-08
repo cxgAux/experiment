@@ -37,4 +37,11 @@ static int __track_length = 15;
 static int __preset_bins = 3600;
 static int __GaussSmooth = 5;
 
+/**
+ *  @brief  saliency weight
+ */
+static float __alpha = 0.5;
+static float __beta = 0.5;
+static float __theta = 0.5;
+
 #endif// ! _ATTRIBUTES_HPP_
