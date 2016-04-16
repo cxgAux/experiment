@@ -348,17 +348,19 @@ float calculateMotionSaliencyMap(const cv::Mat & flow, cv::Mat & saliencyMap, co
     int _width = flow.cols, _height = flow.rows, _nBins = descInfo._isHof ? descInfo._nBins - 1 : descInfo._nBins;
     saliencyMap.create(_height, _width, CV_32FC1);
     std::vector<float> _kernel{1.0f, 2.0f, 1.0f};
-    cv::Mat _smoothFlow;
-    GaussianSmoothC2(flow, _smoothFlow, _kernel);
+    //cv::Mat _smoothFlow;
+    //GaussianSmoothC2(flow, _smoothFlow, _kernel);
     //cv::Mat _smoothXFlow, _smoothYFlow, _flows[2];
     //cv::split(flow, _flows);
+    /**
+     *  @warn   GaussianSmoothC1 is specail designed for mat of 8UC1 type
+     */
     //GaussianSmoothC1(_flows[0], _smoothXFlow, _kernel);
     //GaussianSmoothC1(_flows[1], _smoothYFlow, _kernel);
     std::vector<float> _intImg(_width * _height * _nBins);
-    integral(_smoothFlow, _height, _width, _nBins, kernelMatrix, _intImg);
+    integral(flow, _height, _width, _nBins, kernelMatrix, _intImg);
     //integral(_smoothXFlow, _smoothYFlow, _height, _width, _nBins, kernelMatrix, _intImg);
     //integral(_flows[0], _flows[1], _height, _width, _nBins, kernelMatrix, _intImg);
-    float _averageSaliency = 0;
     for(int iHeight = 0; iHeight < _height; ++ iHeight) {
         int _yoff = std::min<int>(iHeight, _height - iHeight);
         float * _pSaliencyMap = saliencyMap.ptr<float>(iHeight);
