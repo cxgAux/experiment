@@ -2,6 +2,7 @@
 #define _VISUALPROC_HPP_
 
 #include "afx.hpp"
+#include "Descriptor.hpp"
 
 void DenseSample(const cv::Mat & grey, std::vector<cv::Point2f> & points, const double quality, const int min_distance) {
     int _width = grey.cols / min_distance, _height = grey.rows / min_distance;
@@ -36,6 +37,75 @@ void DenseSample(const cv::Mat & grey, std::vector<cv::Point2f> & points, const 
                     points.push_back(cv::Point2f(float(_x), float(_y)));
                 }
             }
+        }
+    }
+}
+
+void MedianFilterOpticalFlowTracker(
+    const cv::Mat & flow,
+    std::list<Trajectory> & tracker,
+    std::vector<cv::Point2f> & points,
+    const cv::Mat & saliencyMap,
+    const DescMat * const hogImg, const DescInfo & hogInfo,
+    const DescMat * const hofImg, const DescInfo & hofInfo,
+    const DescMat * const xMbhImg, const DescMat * const yMbhImg, const DescInfo & mbhInfo,
+    const TrackInfo & trackInfo,
+    float avgFrameSaliency,
+    std::ostream & salientTrajDelegator,
+    std::ostream & unSalientTrahDelegator
+) {
+    TrajectorySerializable _ts;
+    int _width = flow.cols, _height = flow.rows;
+    points.clear();
+    std::vector<float> _vXFlow, _vYFlow, _vSaliency;
+    for(std::list<Trajectory>::iterator _traj = tracker.begin(); _traj != tracker.end();/*++ _traj is invalid operation*/) {
+        cv::Point2f _point = _traj->_points[_traj->_idx];
+        _vXFlow.clear(); _vYFlow.clear(); _vSaliency.clear();
+        int _x = cvRound(_point.x), _y = cvRound(_point.y);
+        for(int iX = -1; iX <= 1; ++ iX) {
+            for(int iY = -1; iY <= 1; ++ iY) {
+                int _candidateX = std::min<int>(std::max<int>(_x + iX, 0), _width - 1), _candidateY = std::min<int>(std::max<int>(_y + iY, 0), _height - 1);
+                const float * pFlow = flow.ptr<float>(_candidateY);
+                _vXFlow.push_back(pFlow[2 * _candidateX]);
+                _vYFlow.push_back(pFlow[2 * _candidateX + 1]);
+                _vSaliency.push_back(saliencyMap.ptr<float>(_candidateY)[_candidateX]);//_candidateY --> row _candidateX --> col
+            }
+        }
+        std::sort(_vXFlow.begin(), _vXFlow.end());
+        std::sort(_vYFlow.begin(), _vYFlow.end());
+        std::sort(_vSaliency.begin(), _vSaliency.end());
+
+        float _candidateX = _point.x + _vXFlow[_vXFlow.size() / 2], _candidateY = _point.y + _vYFlow[_vYFlow.size() / 2];
+        if(_candidateX > 0 && _candidateX < _width && _candidateY > 0 && _candidateY < _height) {
+            RectInfo _rect = createWith_center_w_h_descInfo(_point, _width, _height, hogInfo);
+            getDesc(hogImg, hogInfo, _rect, _traj->_hog, _traj->_idx);
+            getDesc(hofImg, hofInfo, _rect, _traj->_hof, _traj->_idx);
+            getDesc(xMbhImg, mbhInfo, _rect, _traj->_mbhx, _traj->_idx);
+            getDesc(yMbhImg, mbhInfo, _rect, _traj->_mbhy, _traj->_idx);
+            points.push_back(cv::Point2f(_candidateX, _candidateY));
+            _traj->addPoint(cv::Point2f(_candidateX, _candidateY), _vSaliency[_vSaliency.size() / 2], avgFrameSaliency);
+            if(_traj->_idx > trackInfo._length) {
+                if(_traj->_saliency >= _traj->_averageSaliency * __ratio) {
+                    //salient trajectories
+                    _log("\t\tsalinet!\n")
+                    _ts(salientTrajDelegator, *_traj);
+                }
+                else {
+                    _log("\t\tunsalinet!\n")
+                    _ts(unSalientTrahDelegator, *_traj);
+                }
+                //remove completed trajectories
+                //<2016/04/16 18:18> free() corruption here!
+                _traj = tracker.erase(_traj);
+            }
+            else {
+                _traj ++;
+            }
+        }
+        else {
+            _log("\t\tinvalid!\n")
+            //remove the incomplete trajectories when fail to track
+            _traj = tracker.erase(_traj);
         }
     }
 }
