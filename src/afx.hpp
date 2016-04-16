@@ -14,12 +14,12 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <string>
+//#define DEBUG
 
-#define _DEBUG_
-
-#if defined(_DEBUG_)
-    #include <iostream>
+#if defined(DEBUG)
     #include <fstream>
+    #include <functional>
+    #include <iostream>
     #include <cstdio>
     #define _log(x) fprintf(stdout, "\033[34mLOG >>\033[32m%s\033[m", x);
     #define _err(x) fprintf(stderr, "\033[33mERR >>\033[31m%s\033[m", x);
@@ -30,6 +30,6 @@
 
     void log(char *, va_list) {}
     void err(char *, va_list) {}
-#endif// _DEBUG_
+#endif// DEBUG
 
 #endif// ! _AFX_HPP_
