@@ -40,8 +40,15 @@ static int __GaussSmooth = 5;
 /**
  *  @brief  saliency weight
  */
+static float __ratio = 1.5;//if salinecy(traj) / salinecy(frames where traj passes) >= radio
 static float __alpha = 0.5;
 static float __beta = 0.5;
 static float __theta = 0.5;
+
+/**
+ *  @brief  saves
+ */
+static std::string __salientTrajFilePrefix = "./descriptor/salient_";
+static std::string __unSalientTrajFilePrefix = "./descriptor/unsalient_";
 
 #endif// ! _ATTRIBUTES_HPP_
