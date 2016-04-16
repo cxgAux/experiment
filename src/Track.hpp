@@ -20,8 +20,17 @@ int Track(int argc, char ** argv) {
         cv::VideoCapture _capture;
         /**
          *  @warn   <2016/04/02 15:09> bind the videoname as the first trivial argument
+                      bind the salientTrajFile as the second trivial argument
          */
         cv::String _videoName = argv[1];
+        __salientTrajFilePrefix += std::string(argv[2]);
+        __unSalientTrajFilePrefix += std::string(argv[3]);
+        std::ofstream _salientTrajFile(__salientTrajFilePrefix.c_str(), std::ofstream::out | std::ios::binary),
+            _unSalientTrajFile(__unSalientTrajFilePrefix.c_str(), std::ofstream::out | std::ios::binary);
+        if(_salientTrajFile.is_open() == false || _unSalientTrajFile.is_open() == false) {
+            _err("Open output file error\n");
+            return EXIT_FAILURE;
+        }
         _capture.open(_videoName);
         if(_capture.isOpened() == false) {
             _err("Error file is provided!\n");
@@ -75,129 +84,147 @@ int Track(int argc, char ** argv) {
                     break;
                 }
 
-                if(_frame_idx >= __start_frame && _frame_idx <= __end_frame) {
-                    if(_frame_idx == __start_frame) {
-                        _image.create(_frame.size(), CV_8UC3);
-                        _grey.create(_frame.size(), CV_8UC1);
-                        _prev_grey.create(_frame.size(), CV_8UC1);
+                if(_frame_idx < __start_frame && _frame_idx > __end_frame) {
+                    _frame_idx ++;
+                    continue;
+                }
 
-                        InitPry(_frame.rows, _frame.cols, _fscales, _sizes);
-                        BuildPyr(_sizes, CV_8UC1, _prev_grey_pyr);
-                        BuildPyr(_sizes, CV_8UC1, _grey_pyr);
+                if(_frame_idx == __start_frame) {
+                    _image.create(_frame.size(), CV_8UC3);
+                    _grey.create(_frame.size(), CV_8UC1);
+                    _prev_grey.create(_frame.size(), CV_8UC1);
 
-                        BuildPyr(_sizes, CV_32FC2, _flow_pyr);
-                        BuildPyr(_sizes, CV_32FC(5), _prev_poly_pyr);
-                        BuildPyr(_sizes, CV_32FC(5), _poly_pyr);
+                    InitPry(_frame.rows, _frame.cols, _fscales, _sizes);
+                    BuildPyr(_sizes, CV_8UC1, _prev_grey_pyr);
+                    BuildPyr(_sizes, CV_8UC1, _grey_pyr);
 
-                        _xyScaleTracks.resize(__scale_nums);
+                    BuildPyr(_sizes, CV_32FC2, _flow_pyr);
+                    BuildPyr(_sizes, CV_32FC(5), _prev_poly_pyr);
+                    BuildPyr(_sizes, CV_32FC(5), _poly_pyr);
 
-                        _frame.copyTo(_image);
-                        cvtColor(_image, _prev_grey, CV_BGR2GRAY);
-                        for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
-                            if(iScale == 0) {
-                                _prev_grey.copyTo(_prev_grey_pyr[0]);
-                            }
-                            else {
-                                cv::resize(_prev_grey_pyr[iScale - 1], _prev_poly_pyr[iScale], _prev_grey_pyr[iScale].size(), 0, 0, cv::INTER_LINEAR);
-                            }
-                            //find good features to track defined in "VisualProc.hpp"
-                            std::vector<cv::Point2f> _points(0);
-                            DenseSample(_prev_grey_pyr[iScale], _points, __quality, __min_distance);
+                    _xyScaleTracks.resize(__scale_nums);
 
-                            //save features inits
-                            std::list<Trajectory> & _iScaleTrajList = _xyScaleTracks[iScale];
-                            for(auto & initPoint : _points) {
-                                _iScaleTrajList.push_back(Trajectory(initPoint, _trackInfo, _hogInfo, _hofInfo, _mbhInfo, _frame_idx, 0, 0));
-                            }
-
-                            //compute polinomial expansion
-                            my::FarnebackPolyExpPyr(_prev_grey, _prev_poly_pyr, _fscales, 7, 1.5);
-                        }// end of for iScale
-                    }// end of if(_frame_idx == __start_frame)
-                    else {
-                        _counter2Sample ++;
-                        _frame.copyTo(_image);
-                        cvtColor(_image, _grey, CV_BGR2GRAY);
-
-                        //in the journal version of "Dense Trajectory"
-                        //compute optical flow for all scales once
-                        my::FarnebackPolyExpPyr(_grey, _poly_pyr, _fscales, 7, 1.5);
-                        my::calcOpticalFlowFarneback(_prev_poly_pyr, _poly_pyr, _flow_pyr, 10, 2, __scale_stride);
-
-                        for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
-                            //build up pixel pyramid
-                            if(iScale == 0) {
-                                _grey.copyTo(_grey_pyr[0]);
-                            }
-                            else {
-                                cv::resize(_grey_pyr[iScale - 1], _grey_pyr[iScale], _grey_pyr[iScale].size(), 0, 0, cv::INTER_LINEAR);
-                            }
-
-                            int _width = _grey_pyr[iScale].cols, _height = _grey_pyr[iScale].rows;
-
-                            //compute all releated information
-                                //compute integral histograms
-                            DescMat * _hogImg = createWith_w_h_b(_width, _height, _hogInfo._nBins);
-                            HogComp(_prev_grey_pyr[iScale], _hogImg->_desc, _hogInfo, _kernelMatrix);
-
-                            DescMat * _hofImg = createWith_w_h_b(_width, _height, _hofInfo._nBins);
-                            HofComp(_flow_pyr[iScale], _hofImg->_desc, _hofInfo, _kernelMatrix);
-
-                            DescMat * _xMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins),
-                                * _yMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins);
-                            MbhComp(_flow_pyr[iScale], _xMbhImg->_desc, _yMbhImg->_desc, _mbhInfo, _kernelMatrix);
-
-                            //compute saliency
-                            cv::Mat _appearanceSaliencyMap, _motionSaliencyMap, _temporalSaliencyMap, _saliencyMap;
-
-                            float _averageAppearanceSaliency = calculateAppearcanceSaliencyMap(_prev_grey_pyr[iScale], _appearanceSaliencyMap);
-                            float _averageMotionSaliency = calculateMotionSaliencyMap(_flow_pyr[iScale], _motionSaliencyMap, _hofInfo, _kernelMatrix);
-
-                            cv::addWeighted(_appearanceSaliencyMap, __alpha, _motionSaliencyMap, __beta, 0, _saliencyMap);
-
-                            if(iScale == 0) {
-                                if(__toDisplay) {
-                                    Display(_appearanceSaliencyMap, AS);
-                                    Display(_motionSaliencyMap, MS);
-                                    Display(_saliencyMap, JS);
-                                }
-                                if(__toSave) {
-                                    Save(_appearanceSaliencyMap, AS, _frame_idx);
-                                    Save(_motionSaliencyMap, MS, _frame_idx);
-                                    Save(_saliencyMap, JS, _frame_idx);
-                                }
-                            }
-
-
-
-                            //track
-                                //collect all feature points
-                            std::vector<cv::Point2f> _points2Track;
-                            for(auto _trajectory : _xyScaleTracks[iScale]) {
-                                _points2Track.push_back(_trajectory._points[_trajectory._idx]);
-                            }
-
-
-                            //resample
-
-                            //garbage collection
-                            release(_hogImg);
-                            release(_hofImg);
-                            release(_xMbhImg);
-                            release(_yMbhImg);
-                        }// end for(int iScale = 0; iScale < __scale_nums; ++ iScale)
-
-                        _grey.copyTo(_prev_grey);
-                        for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
-                            _grey_pyr[iScale].copyTo(_prev_grey_pyr[iScale]);
-                            _poly_pyr[iScale].copyTo(_prev_poly_pyr[iScale]);
+                    _frame.copyTo(_image);
+                    cvtColor(_image, _prev_grey, CV_BGR2GRAY);
+                    for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
+                        if(iScale == 0) {
+                            _prev_grey.copyTo(_prev_grey_pyr[0]);
                         }
-                    } // end of if(_frame_idx == __start_frame) else
-                }//end of if(_frame_idx >= __start_frame && _frame_idx <= __end_frame)
+                        else {
+                            cv::resize(_prev_grey_pyr[iScale - 1], _prev_grey_pyr[iScale], _prev_grey_pyr[iScale].size(), 0, 0, cv::INTER_LINEAR);
+                        }
 
+                        //find good features to track defined in "VisualProc.hpp"
+                        std::vector<cv::Point2f> _points(0);
+                        DenseSample(_prev_grey_pyr[iScale], _points, __quality, __min_distance);
+
+                        //save features inits
+                        std::list<Trajectory> & _iScaleTrajList = _xyScaleTracks[iScale];
+                        for(auto & initPoint : _points) {
+                            _iScaleTrajList.push_back(Trajectory(initPoint, _trackInfo, _hogInfo, _hofInfo, _mbhInfo, _frame_idx, 0, 0));
+                        }
+
+                        //compute polinomial expansion
+                        my::FarnebackPolyExpPyr(_prev_grey, _prev_poly_pyr, _fscales, 7, 1.5);
+                        _frame_idx ++;
+                        continue;
+                    }// end of for iScale
+                }// end of if(_frame_idx == __start_frame)
+
+                _counter2Sample ++;
+                _frame.copyTo(_image);
+                cvtColor(_image, _grey, CV_BGR2GRAY);
+
+                //in the journal version of "Dense Trajectory"
+                //compute optical flow for all scales once
+                my::FarnebackPolyExpPyr(_grey, _poly_pyr, _fscales, 7, 1.5);
+                my::calcOpticalFlowFarneback(_prev_poly_pyr, _poly_pyr, _flow_pyr, 10, 2, __scale_stride);
+
+                for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
+                    //build up pixel pyramid
+                    if(iScale == 0) {
+                        _grey.copyTo(_grey_pyr[0]);
+                    }
+                    else {
+                        cv::resize(_grey_pyr[iScale - 1], _grey_pyr[iScale], _grey_pyr[iScale].size(), 0, 0, cv::INTER_LINEAR);
+                    }
+
+                    int _width = _grey_pyr[iScale].cols, _height = _grey_pyr[iScale].rows;
+
+                    //compute all releated information
+                        //compute integral histograms
+                    DescMat * _hogImg = createWith_w_h_b(_width, _height, _hogInfo._nBins);
+                    HogComp(_prev_grey_pyr[iScale], _hogImg->_desc, _hogInfo, _kernelMatrix);
+
+                    DescMat * _hofImg = createWith_w_h_b(_width, _height, _hofInfo._nBins);
+                    HofComp(_flow_pyr[iScale], _hofImg->_desc, _hofInfo, _kernelMatrix);
+
+                    DescMat * _xMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins),
+                        * _yMbhImg = createWith_w_h_b(_width, _height, _mbhInfo._nBins);
+                    MbhComp(_flow_pyr[iScale], _xMbhImg->_desc, _yMbhImg->_desc, _mbhInfo, _kernelMatrix);
+
+                    //compute saliency
+                    cv::Mat _appearanceSaliencyMap, _motionSaliencyMap, _temporalSaliencyMap, _saliencyMap;
+
+                    float _averageAppearanceSaliency = calculateAppearcanceSaliencyMap(_prev_grey_pyr[iScale], _appearanceSaliencyMap);
+                    float _averageMotionSaliency = calculateMotionSaliencyMap(_flow_pyr[iScale], _motionSaliencyMap, _hofInfo, _kernelMatrix);
+                    cv::addWeighted(_appearanceSaliencyMap, __alpha, _motionSaliencyMap, __beta, 0, _saliencyMap);
+                    float _averageSaliency = __alpha * _averageAppearanceSaliency + __beta + _averageMotionSaliency;
+
+                    if(iScale == 0) {
+                        if(__toDisplay) {
+                            Display(_appearanceSaliencyMap, AS);
+                            Display(_motionSaliencyMap, MS);
+                            Display(_saliencyMap, JS);
+                        }
+                        if(__toSave) {
+                            Save(_appearanceSaliencyMap, AS, _frame_idx);
+                            Save(_motionSaliencyMap, MS, _frame_idx);
+                            Save(_saliencyMap, JS, _frame_idx);
+                        }
+                    }
+//<2016/04/13 23:03> 追踪问题很大，基本一帧就追踪失败
+                    //track
+                    std::vector<cv::Point2f> _points;
+                    MedianFilterOpticalFlowTracker(
+                        _flow_pyr[iScale],/*flow filed for tracking*/
+                        _xyScaleTracks[iScale],/*tracker*/
+                        _points,/*resampling obstacles, return*/
+                        _saliencyMap,/*to calculate trajectory salinecy*/
+                        _hogImg, _hogInfo, _hofImg, _hofInfo, _xMbhImg, _yMbhImg, _mbhInfo,/*to compute trajectory descriptors*/
+                        _trackInfo,/*to judge trajectories meet thire ends*/
+                        _averageSaliency,/*avg frame salinecy*/
+                        _salientTrajFile,
+                        _unSalientTrajFile
+                    );
+
+                    //garbage collection
+                    release(_hogImg);
+                    release(_hofImg);
+                    release(_xMbhImg);
+                    release(_yMbhImg);
+
+                    //resample
+                    if(_counter2Sample != __init_gap) {
+                        continue;
+                    }
+                    DenseSample(_grey_pyr[iScale], _points, __quality, __min_distance);
+                    for(auto & initPoint : _points) {
+                        _xyScaleTracks[iScale].push_back(Trajectory(initPoint, _trackInfo, _hogInfo, _hofInfo, _mbhInfo, _frame_idx, 0, 0));
+                    }
+                }// end for(int iScale = 0; iScale < __scale_nums; ++ iScale)
+                _counter2Sample = 0;
+                _grey.copyTo(_prev_grey);
+                for(int iScale = 0; iScale < __scale_nums; ++ iScale) {
+                    _grey_pyr[iScale].copyTo(_prev_grey_pyr[iScale]);
+                    _poly_pyr[iScale].copyTo(_prev_poly_pyr[iScale]);
+                }
                 _frame_idx ++;
             }//end of while(true)
         }// else int _frame_idx = 0;
+        _salientTrajFile.close();
+        _unSalientTrajFile.close();
+        return EXIT_SUCCESS;
     }//end of else cv::VideoCapture _capture;
 }//end of int Track(int argc, char ** argv)
 
