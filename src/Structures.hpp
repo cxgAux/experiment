@@ -17,11 +17,8 @@ typedef struct RectInfo{
         _log(__buff);
         delete [] __buff;
     }
+    RectInfo(const RectInfo & rect) : RectInfo(rect._x, rect._y, rect._width, rect._height) {}
 } RectInfo;
-
-RectInfo createWith_corner_x_y_size_w_h (int x, int y, int width, int height) {
-    return RectInfo(x, y, width, height);
-}
 
 /**
  *  @brief  resolution and the number of frames to represent an video
@@ -36,6 +33,7 @@ typedef struct SeqInfo {
             _log(__buff);
             delete [] __buff;
     }
+    SeqInfo(const SeqInfo & seq) : SeqInfo(seq._width, seq._height, seq._length) {}
 } SeqInfo;
 
 SeqInfo createWith_resolution_w_h_frames_length (int w, int h, int len) {
@@ -73,6 +71,7 @@ typedef struct TrackInfo {
         _log(__buff);
         delete [] __buff;
     }
+    TrackInfo(const TrackInfo & track) : TrackInfo(track._length, track._gap) {}
 } TrackInfo;
 
 TrackInfo createWith_TrajLength_SampleGap (int len, int gap) {
@@ -96,10 +95,16 @@ typedef struct DescInfo {
         _log(__buff);
         delete [] __buff;
     }
+    DescInfo(const DescInfo & desc) : DescInfo(desc._isHof, desc._nxCells, desc._nyCells, desc._ntCells, desc._nBins, desc._width, desc._height) {}
 } DescInfo;
 
 DescInfo createWith_isHofFlag_cubePartition_xy_t_b_crossSection_w_h (bool isHof, int nxyCells, int ntCells, int nBins, int w, int h) {
     return DescInfo(isHof, nxyCells, nxyCells, ntCells, nBins, w, h);
+}
+
+RectInfo createWith_center_w_h_descInfo (const cv::Point2f & point, int width, int height, const DescInfo & descInfo) {
+    int _minX = descInfo._width / 2, _minY = descInfo._height / 2, _maxX = width - descInfo._width, _maxY = height - descInfo._height;
+    return RectInfo(std::min<int>(std::max<int>(cvRound(point.x) - _minX, 0), _maxX), std::min<int>(std::max<int>(cvRound(point.y) - _minY, 0), _maxY), descInfo._width, descInfo._height);
 }
 
 /**
@@ -141,32 +146,64 @@ public:
     std::vector<cv::Point2f> _points;
     SamplePoints (const TrackInfo & trackInfo, const cv::Point2f & point)
         : _idx(0), _points(trackInfo._length + 1) {
-        addPoint(point);
+            /**
+             *  @warn   In this version we constraint the size of the points so push_back will rise a logical error!
+             */
+            _points[_idx] = point;
     }
-    void addPoint (const cv::Point2f & point) {
-        _idx ++;
-        _points[_idx] = point;
+    SamplePoints (const SamplePoints & sample) : _idx(sample._idx), _points(sample._points) {}
+    const SamplePoints operator=(const SamplePoints & sample) {
+        this->_idx = sample._idx;
+        this->_points = sample._points;
+        return *this;
     }
+    void _addPoint (const cv::Point2f & point) {
+        _points[++ _idx] = point;
+    }
+    virtual ~SamplePoints() {}
     //<2016/04/01 22:46> remain unimplemted
     void computeTraj ();
 };
 
-class Histogram {
+class Histogram : public SamplePoints {
 public:
     std::vector<float> _hog, _hof, _mbhx, _mbhy;
-    Histogram (const TrackInfo & trackInfo, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo)
-        : _hog(hogInfo._dim * trackInfo._length), _hof(hofInfo._dim * trackInfo._length), _mbhx(mbhInfo._dim * trackInfo._length), _mbhy(mbhInfo._dim * trackInfo._length){
-
+    Histogram (const TrackInfo & trackInfo, const cv::Point2f & point, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo)
+        : SamplePoints(trackInfo, point), _hog(hogInfo._dim * trackInfo._length), _hof(hofInfo._dim * trackInfo._length), _mbhx(mbhInfo._dim * trackInfo._length), _mbhy(mbhInfo._dim * trackInfo._length){}
+    Histogram (const Histogram & hist) : SamplePoints(hist), _hog(hist._hog), _hof(hist._hof), _mbhx(hist._mbhx), _mbhy(hist._mbhy) {}
+    const Histogram operator=(const Histogram & hist) {
+        SamplePoints::operator=(hist);
+        this->_hog = hist._hog;
+        this->_hof = hist._hof;
+        this->_mbhx = hist._mbhx;
+        this->_mbhy = hist._mbhy;
+        return *this;
     }
+    virtual ~Histogram() {}
 };
 
-class Trajectory : public SamplePoints, public Histogram {
+class Trajectory : public Histogram {
 public:
     int _start_frame;
     float _saliency, _averageSaliency;
     Trajectory (const cv::Point2f & point, const TrackInfo & trackInfo, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo, int start_frame, float saliency = 0.f, float averageSaliency = 0.f)
-        : SamplePoints(trackInfo, point), Histogram(trackInfo, hogInfo, hofInfo, mbhInfo), _start_frame(start_frame), _saliency(saliency), _averageSaliency(averageSaliency) {
+        : Histogram(trackInfo, point, hogInfo, hofInfo, mbhInfo), _start_frame(start_frame), _saliency(saliency), _averageSaliency(averageSaliency) {
 
+    }
+    Trajectory (const Trajectory & traj)
+        : Histogram(traj), _start_frame(traj._start_frame), _saliency(traj._saliency), _averageSaliency(traj._averageSaliency) {}
+    const Trajectory operator=(const Trajectory & traj) {
+        Histogram::operator=(traj);
+        this->_start_frame = traj._start_frame;
+        this->_saliency = traj._saliency;
+        this->_averageSaliency = traj._averageSaliency;
+        return *this;
+    }
+    ~Trajectory() {}
+    void addPoint (const cv::Point2f & point, float saliency, float avgSaliency) {
+        _addPoint(point);
+        this->_saliency += saliency;
+        this->_averageSaliency += avgSaliency;
     }
 };
 
@@ -182,7 +219,7 @@ cv::Mat createWith_bins_nBins_kernelRadius (int binCount, int nBins, int guassSm
         for(int iCol = 0; iCol < nBins; ++ iCol) {
             float _diff_f = std::cos(iRow * _denseBase) - std::cos(iCol * _binBase), \
                 _diff_s = std::sin(iRow * _denseBase) - std::sin(iCol * _binBase);
-            _pRow[iCol] = std::exp(- guassSmooth * (std::pow(_diff_f, 2.0f) +std::pow(_diff_s, 2.0f)));
+            _pRow[iCol] = std::exp(- guassSmooth * (std::pow(_diff_f, 2.0f) + std::pow(_diff_s, 2.0f)));
         }
     }
     return _res;
@@ -228,5 +265,29 @@ void BuildPyr(std::vector<cv::Size> sizes, int type, std::vector<cv::Mat> & pyra
         pyramid[iLayer].create(sizes[iLayer], type);
     }
 }
+
+/**
+ *  @brief  trajectory delegator
+ */
+struct TrajectorySerializable {
+    void operator()(std::ostream & os, const Trajectory & trajectory){
+        os << trajectory._start_frame << __delimiter;
+        for(const auto & val : trajectory._hog) {
+            os << val << __delimiter;
+        }
+        for(const auto & val : trajectory._hof) {
+            os << val << __delimiter;
+        }
+        for(const auto & val : trajectory._mbhx) {
+            os << val << __delimiter;
+        }
+        for(const auto & val : trajectory._mbhy) {
+            os << val << __delimiter;
+        }
+        os << __endofLine;
+    }
+    static const char __delimiter = '\t';
+    static const char __endofLine = '\n';
+};
 
 #endif// ! _STRUCTURES_HPP_
