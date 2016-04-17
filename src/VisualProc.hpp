@@ -58,7 +58,7 @@ void MedianFilterOpticalFlowTracker(
     int _width = flow.cols, _height = flow.rows;
     points.clear();
     std::vector<float> _vXFlow, _vYFlow, _vSaliency;
-    for(std::list<Trajectory>::iterator _traj = tracker.begin(); _traj != tracker.end();/*++ _traj is invalid operation*/) {
+    for(auto _traj = tracker.begin(); _traj != tracker.end();/* ++ _traj*/) {
         cv::Point2f _point = _traj->_points[_traj->_idx];
         _vXFlow.clear(); _vYFlow.clear(); _vSaliency.clear();
         int _x = cvRound(_point.x), _y = cvRound(_point.y);
@@ -85,21 +85,21 @@ void MedianFilterOpticalFlowTracker(
             points.push_back(cv::Point2f(_candidateX, _candidateY));
             _traj->addPoint(cv::Point2f(_candidateX, _candidateY), _vSaliency[_vSaliency.size() / 2], avgFrameSaliency);
             if(_traj->_idx > trackInfo._length) {
-                if(_traj->_saliency >= _traj->_averageSaliency * __ratio) {
+                if(_traj->_saliency / _traj->_averageSaliency >=  __ratio) {
                     //salient trajectories
                     _log("\t\tsalinet!\n")
-                    _ts(salientTrajDelegator, *_traj);
+                    _ts(salientTrajDelegator, * _traj);
                 }
                 else {
                     _log("\t\tunsalinet!\n")
-                    _ts(unSalientTrahDelegator, *_traj);
+                    _ts(unSalientTrahDelegator, * _traj);
                 }
                 //remove completed trajectories
                 //<2016/04/16 18:18> free() corruption here!
                 _traj = tracker.erase(_traj);
             }
             else {
-                _traj ++;
+                ++ _traj;
             }
         }
         else {

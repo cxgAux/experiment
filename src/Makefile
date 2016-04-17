@@ -1,18 +1,19 @@
 CC := g++
-CFLAGS := -O3 -ggdb -Wall -std=c++11
+CFLAGS := -O3 -ggdb -pipe -Wall -std=c++11
 BUILD := debug
 INCLUDES := -I/usr/local/include -I./ -I./3rd/ -I./util
 LIBS := -L/usr/local/lib \
 		-lopencv_core -lopencv_highgui -lopencv_video \
 		-lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs
+MODE := -DDEBUG
 TARGET := $(BUILD)/Main
 OBJS := main.o
 .PHONY : all
 all : $(TARGET)
 $(TARGET) : $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ $(INCLUDES) $(LIBS)
+	$(CC) $(MODE) $(CFLAGS) $^ -o $@ $(INCLUDES) $(LIBS)
 %.o : %.cpp
-	$(CC) $(CFLAGS) -c $^ $(INCLUDES) $(LIBS)
+	$(CC) $(MODE) $(CFLAGS) -c $^ $(INCLUDES) $(LIBS)
 .PHONY : _cleanObjs
  _cleanObjs :
 	rm -rf *.o

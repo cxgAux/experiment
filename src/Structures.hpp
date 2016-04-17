@@ -121,6 +121,9 @@ typedef struct DescMat {
         _log(__buff);
         delete [] __buff;
     }
+    DescMat (const DescMat & mat) : DescMat(mat._width, mat._height, mat._nBins) {
+        std::copy_n(mat._desc, _width * _height * _nBins, _desc);
+    }
 } DescMat;
 
 DescMat * createWith_w_h_b (int w, int h, int b) {
@@ -132,8 +135,10 @@ void release(DescMat * descMat) {
         _log("descMat release\n")
         if(descMat->_desc != nullptr) {
             delete [] descMat->_desc;
+            descMat->_desc = nullptr;
         }
         delete descMat;
+        descMat = nullptr;
     }
 }
 
@@ -152,7 +157,7 @@ public:
             _points[_idx] = point;
     }
     SamplePoints (const SamplePoints & sample) : _idx(sample._idx), _points(sample._points) {}
-    const SamplePoints operator=(const SamplePoints & sample) {
+    SamplePoints & operator=(const SamplePoints & sample) {
         this->_idx = sample._idx;
         this->_points = sample._points;
         return *this;
@@ -171,7 +176,7 @@ public:
     Histogram (const TrackInfo & trackInfo, const cv::Point2f & point, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo)
         : SamplePoints(trackInfo, point), _hog(hogInfo._dim * trackInfo._length), _hof(hofInfo._dim * trackInfo._length), _mbhx(mbhInfo._dim * trackInfo._length), _mbhy(mbhInfo._dim * trackInfo._length){}
     Histogram (const Histogram & hist) : SamplePoints(hist), _hog(hist._hog), _hof(hist._hof), _mbhx(hist._mbhx), _mbhy(hist._mbhy) {}
-    const Histogram operator=(const Histogram & hist) {
+    Histogram & operator=(const Histogram & hist) {
         SamplePoints::operator=(hist);
         this->_hog = hist._hog;
         this->_hof = hist._hof;
@@ -192,7 +197,7 @@ public:
     }
     Trajectory (const Trajectory & traj)
         : Histogram(traj), _start_frame(traj._start_frame), _saliency(traj._saliency), _averageSaliency(traj._averageSaliency) {}
-    const Trajectory operator=(const Trajectory & traj) {
+    Trajectory & operator=(const Trajectory & traj) {
         Histogram::operator=(traj);
         this->_start_frame = traj._start_frame;
         this->_saliency = traj._saliency;
