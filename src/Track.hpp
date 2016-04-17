@@ -183,7 +183,9 @@ int Track(int argc, char ** argv) {
                             Save(_saliencyMap, JS, _frame_idx);
                         }
                     }
-//<2016/04/13 23:03> 追踪问题很大，基本一帧就追踪失败
+/**
+ *  @brief <2016/04/17 23:21> tracking problem now have been repaired. The remaining one is all trajs are unsalient?
+ */
                     //track
                     std::vector<cv::Point2f> _points;
                     MedianFilterOpticalFlowTracker(

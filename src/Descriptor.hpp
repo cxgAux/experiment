@@ -70,35 +70,56 @@ void BuildIntegralImage(
 
 
 void getDesc(const DescMat * const mat, const DescInfo & info, const RectInfo & rect, std::vector<float> & desc, int idx) {
-    int _dim = info._dim, _nBins = info._nBins, _width = mat->_width;
-    int _xStride = rect._width / info._nxCells, _yStride = rect._height / info._nyCells, _xStep = _xStride * _nBins, _yStep = _yStride * _nBins;
+    int _descDim = info._dim, _height = mat->_height, _width = mat->_width,
+        _xoff = rect._x, _yoff = rect._y,
+        _xStride = rect._width / info._nxCells, _yStride = rect._height / info._nyCells,
+        _nBins = info._nBins;
 
-    //iterator over relative cells
-    int iDesc = 0;
-    std::vector<float> _v(_dim);
-    for(int xPos = rect._x, x = 0; x < info._nxCells; xPos += _xStride, ++ x) {
-        for(int yPos = rect._y, y = 0; y < info._nyCells; yPos += _yStride, ++ y) {
-            const float * _TL = mat->_desc + (yPos * _width + xPos) * _nBins,
-                * _TR = _TL + _xStep,
-                * _BL = _TL + _yStep,
-                * _BR = _BL + _xStep;
-            for(int iBin = 0; iBin < _nBins; ++ iBin) {
-                float _area = _BR[iBin] + _TL[iBin] - _BL[iBin] - _TR[iBin];
-                _v[iDesc ++] = std::max<float>(_area, 0) + __epsilon;
+    int _iDesc = 0;
+    std::vector<float> _tmp(_descDim);
+    float _norm = 0;
+    for(int iX = 0; iX < info._nxCells; ++ iX) {
+        for(int iY = 0; iY < info._nyCells; ++ iY) {
+            int _left = _xoff + iX * _xStride - 1,
+                _right = std::min<int>(_left + _xStride, _width - 1),
+                _top = _yoff + iY * _yStride - 1,
+                _bottom = std::min<int>(_top + _yStride, _height - 1);
+
+            int _TL = (_top * _width + _left) * _nBins,
+                _TR = (_top * _width + _right) * _nBins,
+                _BL = (_bottom * _width + _left) * _nBins,
+                _BR = (_bottom * _width + _right) * _nBins;
+
+            for(int iB = 0; iB < _nBins; ++ iB, ++ _iDesc) {
+                float _sTL(0), _sTR(0), _sBL(0), _sBR(0);
+                if(_top >= 0) {
+                    if(_left >= 0) {
+                        _sTL = mat->_desc[_TL + iB];
+                    }
+                    if(_right >= 0) {
+                        _sTR = mat->_desc[_TR + iB];
+                    }
+                }
+                if(_bottom >= 0) {
+                    if(_left >= 0) {
+                        _sBL = mat->_desc[_BL + iB];
+                    }
+                    if(_right >= 0) {
+                        _sBR = mat->_desc[_BR + iB];
+                    }
+                }
+                _tmp[_iDesc] = std::max<int>(_sBR - _sBL - _sTR + _sTL, 0) + __epsilon;
+                _norm += _tmp[_iDesc];
             }
         }
-    }
-    float _norm = 0.f;
-    for(int iDim = 0; iDim < _dim; ++ iDim) {
-        _norm += _v[iDim];
-    }
-    if(_norm > 0) {
-        _norm = 1.f / _norm;
-    }
+        if(_norm > 0) {
+            _norm = 1.f / _norm;
+        }
 
-    int _pos = idx * _dim;
-    for(int iDim = 0; iDim < _dim; ++ iDim) {
-        desc[_pos ++] = std::sqrt(_v[iDim] * _norm);
+        int _iPos = idx * _descDim;
+        for(int iPos = 0; iPos < _descDim; ++ iPos) {
+            desc[_iPos ++] = std::sqrt(_tmp[iPos] * _norm);
+        }
     }
 }
 

@@ -84,7 +84,10 @@ void MedianFilterOpticalFlowTracker(
             getDesc(yMbhImg, mbhInfo, _rect, _traj->_mbhy, _traj->_idx);
             points.push_back(cv::Point2f(_candidateX, _candidateY));
             _traj->addPoint(cv::Point2f(_candidateX, _candidateY), _vSaliency[_vSaliency.size() / 2], avgFrameSaliency);
-            if(_traj->_idx > trackInfo._length) {
+            /**
+             *  @warn  the comparative operator should be >=, or getDesc will arise an iterator out of bound error, while the compiler reports it as an "invalid pointer"  error
+             */
+            if(_traj->_idx >= trackInfo._length) {
                 if(_traj->_saliency / _traj->_averageSaliency >=  __ratio) {
                     //salient trajectories
                     _log("\t\tsalinet!\n")

@@ -103,7 +103,10 @@ DescInfo createWith_isHofFlag_cubePartition_xy_t_b_crossSection_w_h (bool isHof,
 }
 
 RectInfo createWith_center_w_h_descInfo (const cv::Point2f & point, int width, int height, const DescInfo & descInfo) {
-    int _minX = descInfo._width / 2, _minY = descInfo._height / 2, _maxX = width - descInfo._width, _maxY = height - descInfo._height;
+    int _minX = descInfo._width / 2,
+        _minY = descInfo._height / 2,
+        _maxX = width - descInfo._width,
+        _maxY = height - descInfo._height;
     return RectInfo(std::min<int>(std::max<int>(cvRound(point.x) - _minX, 0), _maxX), std::min<int>(std::max<int>(cvRound(point.y) - _minY, 0), _maxY), descInfo._width, descInfo._height);
 }
 
