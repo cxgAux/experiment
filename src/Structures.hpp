@@ -173,14 +173,13 @@ public:
     void computeTraj ();
 };
 
-class Histogram : public SamplePoints {
+class Histogram {
 public:
     std::vector<float> _hog, _hof, _mbhx, _mbhy;
-    Histogram (const TrackInfo & trackInfo, const cv::Point2f & point, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo)
-        : SamplePoints(trackInfo, point), _hog(hogInfo._dim * trackInfo._length), _hof(hofInfo._dim * trackInfo._length), _mbhx(mbhInfo._dim * trackInfo._length), _mbhy(mbhInfo._dim * trackInfo._length){}
-    Histogram (const Histogram & hist) : SamplePoints(hist), _hog(hist._hog), _hof(hist._hof), _mbhx(hist._mbhx), _mbhy(hist._mbhy) {}
+    Histogram (const TrackInfo & trackInfo,  const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo)
+        : _hog(hogInfo._dim * trackInfo._length), _hof(hofInfo._dim * trackInfo._length), _mbhx(mbhInfo._dim * trackInfo._length), _mbhy(mbhInfo._dim * trackInfo._length){}
+    Histogram (const Histogram & hist) : _hog(hist._hog), _hof(hist._hof), _mbhx(hist._mbhx), _mbhy(hist._mbhy) {}
     Histogram & operator=(const Histogram & hist) {
-        SamplePoints::operator=(hist);
         this->_hog = hist._hog;
         this->_hof = hist._hof;
         this->_mbhx = hist._mbhx;
@@ -190,17 +189,19 @@ public:
     virtual ~Histogram() {}
 };
 
-class Trajectory : public Histogram {
+class Trajectory: public SamplePoints, public Histogram {
 public:
     int _start_frame;
-    float _saliency, _averageSaliency;
-    Trajectory (const cv::Point2f & point, const TrackInfo & trackInfo, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo, int start_frame, float saliency = 0.f, float averageSaliency = 0.f)
-        : Histogram(trackInfo, point, hogInfo, hofInfo, mbhInfo), _start_frame(start_frame), _saliency(saliency), _averageSaliency(averageSaliency) {
+    float _saliency;
+    float _averageSaliency;
+    Trajectory (const cv::Point2f & point, const TrackInfo & trackInfo, const DescInfo & hogInfo, const DescInfo & hofInfo, const DescInfo & mbhInfo, int start_frame, float saliency, float averageSaliency)
+        : SamplePoints(trackInfo, point), Histogram(trackInfo, hogInfo, hofInfo, mbhInfo), _start_frame(start_frame), _saliency(saliency), _averageSaliency(averageSaliency) {
 
     }
     Trajectory (const Trajectory & traj)
-        : Histogram(traj), _start_frame(traj._start_frame), _saliency(traj._saliency), _averageSaliency(traj._averageSaliency) {}
+        : SamplePoints(traj), Histogram(traj), _start_frame(traj._start_frame), _saliency(traj._saliency), _averageSaliency(traj._averageSaliency) {}
     Trajectory & operator=(const Trajectory & traj) {
+        SamplePoints::operator=(traj);
         Histogram::operator=(traj);
         this->_start_frame = traj._start_frame;
         this->_saliency = traj._saliency;
@@ -278,8 +279,11 @@ void BuildPyr(std::vector<cv::Size> sizes, int type, std::vector<cv::Mat> & pyra
  *  @brief  trajectory delegator
  */
 struct TrajectorySerializable {
-    void operator()(std::ostream & os, const Trajectory & trajectory){
+    void operator()(std::ostream & os, const Trajectory & trajectory, const float fscale){
         os << trajectory._start_frame << __delimiter;
+        for(const auto & val : trajectory._points) {
+            os << val.x * fscale << __delimiter << val.y * fscale << __delimiter;
+        }
         for(const auto & val : trajectory._hog) {
             os << val << __delimiter;
         }

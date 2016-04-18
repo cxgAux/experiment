@@ -14,11 +14,10 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <string>
-//#define DEBUG
+#include <fstream>
+#include <functional>
 
 #if defined(DEBUG)
-    #include <fstream>
-    #include <functional>
     #include <iostream>
     #include <cstdio>
     #define _log(x) fprintf(stdout, "\033[34mLOG >>\033[32m%s\033[m", x);

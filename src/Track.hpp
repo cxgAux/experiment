@@ -9,7 +9,7 @@
 #include "Saliency.hpp"
 
 bool __toDisplay = true;
-bool __toSave = true;
+bool __toSave = false;
 
 int Track(int argc, char ** argv) {
     if(argc < 2) {
@@ -165,11 +165,18 @@ int Track(int argc, char ** argv) {
 
                     //compute saliency
                     cv::Mat _appearanceSaliencyMap, _motionSaliencyMap, _temporalSaliencyMap, _saliencyMap;
-
                     float _averageAppearanceSaliency = calculateAppearcanceSaliencyMap(_prev_grey_pyr[iScale], _appearanceSaliencyMap);
                     float _averageMotionSaliency = calculateMotionSaliencyMap(_flow_pyr[iScale], _motionSaliencyMap, _hofInfo, _kernelMatrix);
-                    cv::addWeighted(_appearanceSaliencyMap, __alpha, _motionSaliencyMap, __beta, 0, _saliencyMap);
-                    float _averageSaliency = __alpha * _averageAppearanceSaliency + __beta + _averageMotionSaliency;
+                    _saliencyMap.create(_appearanceSaliencyMap.size(), _appearanceSaliencyMap.type());
+                    for(int iRow = 0; iRow < _saliencyMap.rows; ++ iRow) {
+                        const float * _pA = _appearanceSaliencyMap.ptr<float>(iRow),
+                                        * _pM = _motionSaliencyMap.ptr<float>(iRow);
+                        float * pS = _saliencyMap.ptr<float>(iRow);
+                        for(int iCol = 0; iCol < _saliencyMap.cols; ++ iCol) {
+                            pS[iCol] = __alpha * _pA[iCol] + __beta * _pM[iCol];
+                        }
+                    }
+                    float _averageSaliency = __alpha * _averageAppearanceSaliency + __beta * _averageMotionSaliency;
 
                     if(iScale == 0) {
                         if(__toDisplay) {
@@ -197,7 +204,8 @@ int Track(int argc, char ** argv) {
                         _trackInfo,/*to judge trajectories meet thire ends*/
                         _averageSaliency,/*avg frame salinecy*/
                         _salientTrajFile,
-                        _unSalientTrajFile
+                        _unSalientTrajFile,
+                        _fscales[iScale]
                     );
 
                     //garbage collection

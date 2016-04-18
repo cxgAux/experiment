@@ -50,9 +50,10 @@ void MedianFilterOpticalFlowTracker(
     const DescMat * const hofImg, const DescInfo & hofInfo,
     const DescMat * const xMbhImg, const DescMat * const yMbhImg, const DescInfo & mbhInfo,
     const TrackInfo & trackInfo,
-    float avgFrameSaliency,
+    const float avgFrameSaliency,
     std::ostream & salientTrajDelegator,
-    std::ostream & unSalientTrahDelegator
+    std::ostream & unSalientTrahDelegator,
+    const float fscale
 ) {
     TrajectorySerializable _ts;
     int _width = flow.cols, _height = flow.rows;
@@ -88,17 +89,16 @@ void MedianFilterOpticalFlowTracker(
              *  @warn  the comparative operator should be >=, or getDesc will arise an iterator out of bound error, while the compiler reports it as an "invalid pointer"  error
              */
             if(_traj->_idx >= trackInfo._length) {
-                if(_traj->_saliency / _traj->_averageSaliency >=  __ratio) {
+                if(_traj->_saliency >= _traj->_averageSaliency * __ratio) {
                     //salient trajectories
                     _log("\t\tsalinet!\n")
-                    _ts(salientTrajDelegator, * _traj);
+                    _ts(salientTrajDelegator, * _traj, fscale);
                 }
                 else {
                     _log("\t\tunsalinet!\n")
-                    _ts(unSalientTrahDelegator, * _traj);
+                    _ts(unSalientTrahDelegator, * _traj, fscale);
                 }
                 //remove completed trajectories
-                //<2016/04/16 18:18> free() corruption here!
                 _traj = tracker.erase(_traj);
             }
             else {

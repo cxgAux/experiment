@@ -34,7 +34,8 @@ float Normalize(cv::Mat & saliencyMap, const int & normRange) {
             _avgSaliency += _pSaliencyMap[iWidth];
         }
     }
-    return _avgSaliency / (_width * _height);
+    _avgSaliency /= (_width * _height);
+    return _avgSaliency;
 }
 
 
@@ -299,7 +300,7 @@ void integral(const cv::Mat & xFlow, const cv::Mat & yFlow, int height, int widt
     }
 }
 
-void getIntegralSum(const std::vector<float> & intImg, int xf, int yf, int xs, int ys, int height, int width, int nBins, std::vector<float> & hist) {
+float getIntegralSum(const std::vector<float> & intImg, int xf, int yf, int xs, int ys, int height, int width, int nBins, std::vector<float> & hist) {
     yf = std::max<int>(0, yf);
     xf = std::max<int>(0, xf);
     ys = std::min<int>(height - 1, ys);
@@ -319,7 +320,7 @@ void getIntegralSum(const std::vector<float> & intImg, int xf, int yf, int xs, i
         _idxTR = ((yf - 1) * width + xs) * nBins,
         _idxBL = (ys * width + (xf - 1)) * nBins,
         _idxBR = (ys * width + xs) * nBins;
-    float _area = (xs - xf + 1) * (ys - yf + 1);
+    float _area = (xs - xf + 1) * (ys - yf + 1), sum = 0;
     for(int iBin = 0; iBin < nBins; ++ iBin) {
         float _intTL(0), _intTR(0), _intBL(0), _intBR(0);
         if(yf >= 1) {
@@ -341,7 +342,9 @@ void getIntegralSum(const std::vector<float> & intImg, int xf, int yf, int xs, i
         hist[iBin] = _intBR - _intBL - _intTR + _intTL;
         hist[iBin] = std::max<int>(hist[iBin], 0);
         hist[iBin] /= _area;
+        sum += std::pow(hist[iBin], 2.0);
     }
+    return sum;
 }
 
 float calculateMotionSaliencyMap(const cv::Mat & flow, cv::Mat & saliencyMap, const DescInfo & descInfo, const cv::Mat & kernelMatrix) {
@@ -371,10 +374,13 @@ float calculateMotionSaliencyMap(const cv::Mat & flow, cv::Mat & saliencyMap, co
             _yoff = std::min<int>(_yoff, 1);
             _xoff = std::min<int>(_xoff, 1);
             _pSaliencyMap[iWidth] = 0;
-            getIntegralSum(_intImg, iWidth - _xoff, iHeight - _yoff, iWidth + _xoff, iHeight + _yoff, _height, _width, _nBins, _center);
-            for(int iBin = 0; iBin < _nBins; ++ iBin) {
-                float _sum = _msa[iBin] + _center[iBin], _diff = _msa[iBin] - _center[iBin];
-                _pSaliencyMap[iWidth] += .5f * _diff * _diff / _sum;
+            if(getIntegralSum(_intImg, iWidth - _xoff, iHeight - _yoff, iWidth + _xoff, iHeight + _yoff, _height, _width, _nBins, _center) > 0) {
+                for(int iBin = 0; iBin < _nBins; ++ iBin) {
+                    float _sum = _msa[iBin] + _center[iBin], _diff = _msa[iBin] - _center[iBin];
+                    if(_sum > 0) {
+                        _pSaliencyMap[iWidth] += .5f * std::pow(_diff, 2.f) / _sum;
+                    }
+                }
             }
         }
     }

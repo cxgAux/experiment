@@ -5,7 +5,7 @@ INCLUDES := -I/usr/local/include -I./ -I./3rd/ -I./util
 LIBS := -L/usr/local/lib \
 		-lopencv_core -lopencv_highgui -lopencv_video \
 		-lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs
-MODE := -DDEBUG
+MODE := -D_DEBUG
 TARGET := $(BUILD)/Main
 OBJS := main.o
 .PHONY : all
