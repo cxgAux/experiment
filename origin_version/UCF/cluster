@@ -1,0 +1,5 @@
+#!/bin/sh
+bin=../$1/Cluster
+${bin} ./codewords/grFeatures.txt ./codewords/grCenters.txt 96
+${bin} ./codewords/ofFeatures.txt ./codewords/ofCenters.txt 108
+${bin} ./codewords/mbFeatures.txt ./codewords/mbCenters.txt 192

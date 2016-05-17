@@ -1,0 +1,39 @@
+#!/bin/bash,
+# maximum samples : 22
+#../debug/Main ../sequences/UCF/Diving-Side/Diving-Side_01.AVI | gzip > ./features/Diving-Side_01.gz
+if [ ! -d "./features" ] ; then
+	mkdir features	
+fi
+
+bin=../$1/Track
+dir=${BenchMarks}
+declare -a folder
+folder=(Diving-Side Golf-Swing Kicking Lifting Riding-Horse Run-Side SkateBoarding-Front Swing-Bench Swing-SideAngle Walk-Front)
+#count=0
+
+for((iAction=0;iAction<10;iAction=iAction+1))
+do
+	for((iClip=1;iClip<=22;iClip=iClip+1))
+	do
+		folderName=${dir}/UCF/${folder[${iAction}]}/
+		clipName=${folder[${iAction}]}_
+		[[ ${iClip} -lt 10 ]] && clipName=${clipName}0${iClip} || clipName=${clipName}${iClip}			
+		#echo "${folderName}${clipName}.AVI"
+		if [ -f "${folderName}${clipName}.AVI" ]
+		then
+			#let count=${count}+1
+			if [ ! -f "./features/${clipName}.gz" ]; then #如果不存在，才创建新的
+				${bin} ${folderName}${clipName}.AVI | gzip > ./features/${clipName}.gz
+			fi
+		fi
+		if [ -f "${folderName}${clipName}_flip.AVI" ]
+		then
+			#let count=${count}+1
+			if [ ! -f "./features/${clipName}_flip.gz" ];then
+				${bin} ${folderName}${clipName}_flip.AVI | gzip > ./features/${clipName}_flip.gz
+			fi
+		fi
+	done
+done
+
+#echo $count

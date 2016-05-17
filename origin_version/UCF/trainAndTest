@@ -1,0 +1,21 @@
+#!/bin/sh
+#../debug/Main ./result/gr.txt ./matrix/gr1.txt ./matrix/gr2.txt ... ./matrix/gr150.txt 
+if [ ! -d result ]
+then
+	mkdir result
+fi
+bin=../$1/TrainAndTest
+declare -a method
+method=(mb)
+# apply leave-one-fold-out for each composition of methods
+for((iMethod=0;iMethod<=0;iMethod=iMethod+1))
+do
+	command="${bin} ./result/${method[${iMethod}]}.txt"
+	for((iTest=1;iTest<=150;iTest=iTest+1))
+	do
+		command=${command}" ./matrix/${method[${iMethod}]}${iTest}.txt "
+	done
+	${command}
+done
+
+
