@@ -49,11 +49,10 @@ bool DenseTrack(int argc, char** argv) {
 		int i, j, c;
 
 		// get a new frame
-		frameNum ++;
 		Mat2IplImageWrapper<uchar>(_frame, frame, 8, 3);
 
 		if( frameNum >= start_frame && frameNum <= end_frame ) {
-			if( !image ) {
+			if( frameNum == start_frame ) {
 				// initailize all the buffers
 				image = IplImageWrapper( cvGetSize(frame), 8, 3 );
 				image->origin = frame->origin;
@@ -358,10 +357,13 @@ bool DenseTrack(int argc, char** argv) {
 					}
 				}
 			}
-
+			frameNum ++;
 			cvCopy( frame, prev_image, 0 );
 			cvCvtColor( prev_image, prev_grey, CV_BGR2GRAY );
 			prev_grey_pyramid.rebuild(prev_grey);
+		}
+		else {
+			frameNum ++;
 		}
 
 		if( show_track == 1 ) {

@@ -1,7 +1,7 @@
 # set the binaries that have to be built
 TARGETS := Track SelectFeatures Cluster EncodeFeatures ComputeDistance ComputeKernelMatrix TrainAndTest
 
-# set the build configuration set 
+# set the build configuration set
 #BUILD := release
 BUILD := debug
 
@@ -19,7 +19,7 @@ LIBS := \
 
 # set some flags and compiler/linker specific commands
 CXXFLAGS = -pipe -D __STDC_CONSTANT_MACROS -D STD=std -Wall $(CXXFLAGS_$(BUILD)) -I. -I/usr/local/include
-CXXFLAGS_debug := -Wl,--no-as-need -Wall -O3 -ggdb
+CXXFLAGS_debug := -Wl,--no-as-need, -Wall -O3 -ggdb
 CXXFLAGS_release := -O3 -DNDEBUG -ggdb
 LDFLAGS = -L/usr/local/lib -pipe -Wall $(LDFLAGS_$(BUILD))
 LDFLAGS_debug := -ggdb
