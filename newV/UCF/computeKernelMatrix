@@ -1,0 +1,13 @@
+#!/bin/sh
+#../debug/Main ./distance/mb1.txt ./matrix/mb1.txt
+if [ ! -d matrix ]
+then
+	mkdir matrix
+fi
+bin=../$1/ComputeKernelMatrix
+# apply leave-one-fold-out
+for((iTest=1;iTest<=150;iTest=iTest+1))
+do
+	command="${bin} ./distance/mb${iTest}.txt ./matrix/mb${iTest}.txt"
+	${command}
+done

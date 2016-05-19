@@ -1,0 +1,49 @@
+文件格式：
+<label> <index1>:<TF1> <index2>:<TF2>
+TF表示特征在该文档中的出现次数,注意我们这里的label是从1开始，index是从0开始的，这与libsvm包不一样，但由于是自己计算核矩阵，所以不影响。
+
+1 怎样读文件？表示文件？
+详见svm-train.c里面的read_problem函数，注意几个函数strtok（字符串分割）、strtod（字符串转double）、strtol（字符串转long int）。
+warning：程序在用完所有的变量后，要记得释放所有的内存。
+
+2 怎样计算核函数？如果要用自己的核函数，需要怎样修改代码？
+两种方法：
+（1）自己预先计算好各视频之间的kernel matrix，选用kernel_type＝PRECOMPUTED
+（2）修改svm.cpp中的kernel_function，k_function以及其它涉及到kernel_type变量的地方。
+选用第（1）种方法，因为要求各训练数据之间各channel的距离，需要自己计算。既然计算了，也就连kernel matrix也自己计算了吧！
+
+3 怎样找最好的C值？
+仅对C值有几个选项，分别测试在不同选项下训练数据cross validation测试方法的效率，选效率最好的作为最终的C值，具体可参考FWC中Utilities.java的autoSelectAlpha函数。
+
+4 怎样计算各特征IG、IDF的值？
+求IDF：具体参照FWC中Utilities.java的convertToTFIDF。借助一个featureSupports = new int[featureCount + 1];统计各特征出现的文档频度，因为不需用到类别信息，所以只需统计一次
+求IG：计算公式见“A Comparison of Event Models for Naive Bayes Text Classification”Equation (8)。需用到类别信息，所以只对测试数据进行。具体参照FWC中Trainer.java的calculateGlobalAndClassSupports和calculateInformationGainForAllFeatures，借助featureSupports = new int[classCount + 1][featureCount + 1];
+featureSupports[i][0] (i>0): 表示各个类别所对应的文档数
+featureSupports[0][feature] (feature): 表示每个特征出现的文档数
+featureSupports[cls][feature]：每个特征出现在各个类别中的文档数
+featureClassCount[featureIndex]：每个特征出现的类别数，我们不需用到
+weights[0][f]：每个特征的IG值
+weights[cls][f]：调整后每个特征在各个类别中的IG/k*(p)_alpha值
+我们不需要对IG值进行调整！！！！！！！！！！
+我们需要计算
+featureSupports[i][0] (i>0): 表示各个类别所对应的文档数
+featureSupports[0][feature] (feature): 表示每个特征出现的文档数
+featureSupports[cls][feature]：每个特征出现在各个类别中的文档数
+weights[f]：每个特征的IG值
+
+FWC主要数据结构，包括int[][] instanceFeatures存各文档中的特征，double[][] instanceFeatureValues存各特征出现的次数，int[][] instanceClassLabels存各文档的类别。
+
+而SVM代码中主要的数据结构包括：
+一个特征
+struct svm_node
+{
+	int index; 特征代号
+	double value; 特征值
+};
+
+struct svm_problem
+{
+	int l; 文档数目
+	double *y; 类别
+	struct svm_node **x; 各特征及其出现次数
+};

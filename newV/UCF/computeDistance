@@ -1,0 +1,18 @@
+#!/bin/sh
+#../debug/Main ./codewords/gr1.txt ./distance/gr1.txt ./codewords/gr2.txt ./codewords/gr2_flip.txt ... ./codewords/gr150.txt ./codewords/gr150_flip.txt
+if [ ! -d distance ]
+then
+	mkdir distance
+fi
+bin=../debug/ComputeDistance
+# apply leave-one-fold-out for KDE-MB
+for((iTest=1;iTest<=150;iTest=iTest+1))
+do
+	command="${bin} ./codewords/mb${iTest}.txt ./distance/mb${iTest}.txt"
+	for((iTrain=1;iTrain<=150;iTrain=iTrain+1))
+	do
+		[[ ${iTest} -ne ${iTrain} ]] && command="${command} ./codewords/mb${iTrain}.txt ./codewords/mb${iTrain}_flip.txt" || command=${command}					
+	done
+	${command}
+done
+

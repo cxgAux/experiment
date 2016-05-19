@@ -1,0 +1,34 @@
+#!/bin/sh
+# maximum samples : 22
+#../debug/Main ./features/Diving-Side_01.gz ./codewords/grFeatures.txt ./codewords/ofFeatures.txt ./codewords/mbFeatures.txt
+if [ ! -d codewords ]
+then
+	mkdir codewords
+fi
+bin=../$1/SelectFeatures
+declare -a folder
+folder=(Diving-Side Golf-Swing Kicking Lifting Riding-Horse Run-Side SkateBoarding-Front Swing-Bench Swing-SideAngle Walk-Front)
+#count=0
+
+for((iAction=0;iAction<10;iAction=iAction+1))
+do
+	for((iClip=1;iClip<=22;iClip=iClip+1))
+	do
+		folderName=./features/
+		clipName=${folder[${iAction}]}_
+		[[ ${iClip} -lt 10 ]] && clipName=${clipName}0${iClip} || clipName=${clipName}${iClip}			
+		#echo "${folderName}${clipName}.gz"
+		if [ -f "${folderName}${clipName}.gz" ]
+		then
+			#let count=${count}+1
+			${bin} ${folderName}${clipName}.gz ./codewords/grFeatures.txt ./codewords/ofFeatures.txt ./codewords/mbFeatures.txt
+		fi
+		if [ -f "${folderName}${clipName}_flip.gz" ]
+		then
+			#let count=${count}+1
+			${bin} ${folderName}${clipName}_flip.gz ./codewords/grFeatures.txt ./codewords/ofFeatures.txt ./codewords/mbFeatures.txt
+		fi
+	done
+done
+
+#echo $count
