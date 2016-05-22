@@ -75,14 +75,14 @@ void BuildDescMat(const IplImage* xComp, // x gradient component
 				bin1 = 0;
 				magnitude1 = 0;*/
 			}
-			else {				
+			else {
 				/* radian, not angle, so the above orientation function is wrong*/
 				float orientation = atan2(shiftY, shiftX);
 				if (orientation < 0)
 				{
 					orientation += 2 * M_PI;
 				}
-				
+
 				int iDense = static_cast<int>(roundf(orientation / denseBase));
 				if (iDense >= kernelMatrix->height)
 				{
@@ -94,8 +94,8 @@ void BuildDescMat(const IplImage* xComp, // x gradient component
 				{
 					sum[m] += magnitude * ptr[m];
 				}
-				
-				
+
+
 				/*float orientation = cvFastArctan(shiftY, shiftX);
 				if(orientation > fullAngle)
 					orientation -= fullAngle;
@@ -205,7 +205,7 @@ void HogComp(IplImage* img, DescMat* descMat, DescInfo descInfo, CvMat* kernelMa
 	BuildDescMat(imgX, imgY, descMat, descInfo, kernelMatrix);
 	cvReleaseImage(&imgX);
 	cvReleaseImage(&imgY);
-	
+
 }
 
 void HofComp(IplImage* flow, DescMat* descMat, DescInfo descInfo, CvMat* kernelMatrix)
@@ -319,7 +319,7 @@ void OpticalFlowTracker(IplImage* flow, // the optical field
 		point_out.x = point_in.x + offset.x;
 		point_out.y = point_in.y + offset.y;
 		points_out[i] = point_out;
-		
+
 		if( point_out.x > 0 && point_out.x < width && point_out.y > 0 && point_out.y < height )
 			status[i] = 1;
 		else
@@ -411,11 +411,11 @@ void cvDenseSample(IplImage* grey, IplImage* eig, std::vector<CvPoint2D32f>& poi
 	const double threshold = maxVal*quality;
 
 	int offset = cvFloor(min_distance/2);
-	for(int i = 0; i < height; i++) 
+	for(int i = 0; i < height; i++)
 	for(int j = 0; j < width; j++) {
 		int x = cvFloor(j*min_distance+offset);
 		int y = cvFloor(i*min_distance+offset);
-		if(CV_IMAGE_ELEM(eig, float, y, x) > threshold) 
+		if(CV_IMAGE_ELEM(eig, float, y, x) > threshold)
 			points.push_back(cvPoint2D32f(x,y));
 	}
 }
@@ -442,12 +442,12 @@ void cvDenseSample(IplImage* grey, IplImage* eig, std::vector<CvPoint2D32f>& poi
 
 	int index = 0;
 	int offset = cvFloor(min_distance/2);
-	for(int i = 0; i < height; i++) 
+	for(int i = 0; i < height; i++)
 	for(int j = 0; j < width; j++, index++) {
 		if(counters[index] == 0) {
 			int x = cvFloor(j*min_distance+offset);
 			int y = cvFloor(i*min_distance+offset);
-			if(CV_IMAGE_ELEM(eig, float, y, x) > threshold) 
+			if(CV_IMAGE_ELEM(eig, float, y, x) > threshold)
 				points_out.push_back(cvPoint2D32f(x,y));
 		}
 	}

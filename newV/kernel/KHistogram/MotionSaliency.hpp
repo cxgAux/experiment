@@ -24,9 +24,9 @@ namespace cxgAlleria {
     	HREP(_height) {
             const float * _pX = xFlow.ptr<float>(iHeight), * _pY = yFlow.ptr<float>(iHeight);
     		// the histogram accumulated in the current line
-    		std::vector<float> _khof(_nBins);
+    		std::vector<float> _khof(_nBins, 0.f);
     		WREP(_width) {
-    			float _xShift = _pX[iWidth], _yShift = _pY[iWidth],
+    			const float _xShift = _pX[iWidth], _yShift = _pY[iWidth],
                     _magnitude = std::sqrt(_xShift * _xShift + _yShift * _yShift);
 
     			if(descInfo.flagThre == 0 || _magnitude > descInfo.threshold) {
@@ -34,27 +34,28 @@ namespace cxgAlleria {
     				if (_orientation < 0) {
     					_orientation += 2 * M_PI;
     				}
-    				int _iDense = static_cast<int>(roundf(_orientation / _denseBase));
+    				int _iDense = roundf(_orientation / _denseBase);
     				if (_iDense >= kernelMatrix.rows) {
     					_iDense = 0;
     				}
     				// directly apply kernel histograms
     				const float * _pK = kernelMatrix.ptr<float>(_iDense);
-    				for (int iBin = 0; iBin < _nBins; ++ iBin)
-    				{
+    				for (int iBin = 0; iBin < _nBins; ++ iBin) {
     					_khof[iBin] += _magnitude * _pK[iBin];
     				}
     			}
 
     			int _realIdx = _idx * _nBins;
     			if(0 == iHeight) { // for the first line
-    				for(int iBin = 0; iBin < _nBins; ++ iBin)
-    					intImg[_realIdx ++] = _khof[iBin];
+    				for(int iBin = 0; iBin < _nBins; ++ iBin, ++ _realIdx) {
+    					intImg[_realIdx] = _khof[iBin];
+                    }
     			}
     			else {
     				int _prevIdx = (_idx - _width) * _nBins;
-    				for(int iBin = 0; iBin < _nBins; ++ iBin)
-    					intImg[_realIdx ++] = intImg[_prevIdx ++] + _khof[iBin];
+    				for(int iBin = 0; iBin < _nBins; ++ iBin, ++ _realIdx, ++ _prevIdx) {
+    					intImg[_realIdx] = intImg[_prevIdx] + _khof[iBin];
+                    }
     			}
 
                 ++ _idx;
@@ -62,13 +63,6 @@ namespace cxgAlleria {
     	}
     }
 
-
-    //===========================================================================
-    ///	CalcMotionSaliencyMap
-    ///
-    /// Outputs a motion saliency map with a value assigned per pixel. The values are
-    /// normalized in the interval [0,255] if normflag is set true (default value).
-    //===========================================================================
     float CalcMotionSaliencyMap(
     	const cv::Mat & flow,
     	const DescInfo& descInfo,
@@ -78,7 +72,7 @@ namespace cxgAlleria {
 
         const int _width = flow.cols, _height = flow.rows, _nBins = descInfo.flagThre ? (descInfo.nBins - 1) : descInfo.nBins;
 
-    	std::vector<float> kernel(0);kernel.push_back(1.0);kernel.push_back(2.0);kernel.push_back(1.0);
+    	std::vector<float> kernel(0);kernel.push_back(1.f);kernel.push_back(2.f);kernel.push_back(1.f);
 
     	cv::Mat flows[2], sflows[2];
         cv::split(flow, flows);
@@ -93,7 +87,7 @@ namespace cxgAlleria {
     		int _yoff = std::min<int>(iHeight, _height - iHeight);
     		float * _pSalMap = salMap.ptr<float>(iHeight);
     		WREP(_width) {
-    			int _xoff = std::min<int>(iWidth, _width -iWidth);
+    			int _xoff = std::min<int>(iWidth, _width - iWidth);
     			std::vector<float> _surround;
     			cxgAlleria::GetIntegralSum(intImg, iWidth - _xoff, iHeight - _yoff, iWidth + _xoff, iHeight + _yoff, _height, _width, _nBins, _surround);
     			std::vector<float> _point;
@@ -104,10 +98,11 @@ namespace cxgAlleria {
     			{
     				for (int iBin = 0; iBin < _nBins; ++ iBin)
     				{
-    					float _diff = _point[iBin] - _surround[iBin], _sum = _point[iBin] + _surround[iBin];
-    					if (_sum > 0)
+    					const float _diff = _point[iBin] - _surround[iBin], _sum = _point[iBin] + _surround[iBin];
+    					if (_sum > 0) {
     						_pSalMap[iWidth] += 0.5f * _diff * _diff / _sum;
-    				}
+                        }
+                    }
     			}
     		}
     	}

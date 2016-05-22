@@ -43,7 +43,7 @@ namespace cxgAlleria {
     ) {
     	const int _width = grey.cols, _height = grey.rows;
 
-    	std::vector<float> kernel(0);kernel.push_back(1.0);kernel.push_back(2.0);kernel.push_back(1.0);
+    	std::vector<float> kernel(0);kernel.push_back(1.f);kernel.push_back(2.f);kernel.push_back(1.f);
 
     	cv::Mat smoothImg; cxgAlleria::GaussianSmooth<uchar>(grey, kernel, smoothImg);
 

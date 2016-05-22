@@ -357,7 +357,6 @@ void Saliency::CreateMotionIntegralImage(
 			float shiftX = f[2 * iWidth];
 			float shiftY = f[2 * iWidth + 1];
 			float magnitude = sqrt(shiftX * shiftX + shiftY * shiftY);
-
 			if(descInfo.flagThre == 0 || magnitude > descInfo.threshold) {
 				float orientation = atan2(shiftY, shiftX);
 				if (orientation < 0)
@@ -504,8 +503,9 @@ float Saliency::CalcMotionSaliencyMap(
 				{
 					float X1 = point[iBin];
 					float X2 = surround[iBin];
-					if (X1 + X2 > 0)
+					if (X1 + X2 > 0) {
 						pMap[iWidth] += 0.5 * pow(X1 - X2, 2) / (X1 + X2);
+					}
 				}
 			}
 

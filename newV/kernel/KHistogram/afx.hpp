@@ -9,6 +9,8 @@
 #include <list>
 #include <cassert>
 #include <limits>
+#include <iostream>
+
 
 #ifndef MY_MACRO
 #define HREP(Height) for (int iHeight = 0; iHeight < (Height); ++ iHeight)

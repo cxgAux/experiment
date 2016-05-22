@@ -2,13 +2,15 @@
 #include "Descriptors.h"
 #include "Initialize.h"
 #include "Saliency.h"
+#include "Pyramid.hpp"
+#include "VisualTask.hpp"
+#include "DescComputation.hpp"
 #include "AppearanceSaliency.hpp"
 #include "MotionSaliency.hpp"
 #include "cast.hpp"
 
 IplImageWrapper image, prev_image, grey, prev_grey;
 IplImagePyramid grey_pyramid, prev_grey_pyramid, eig_pyramid;
-float* fscales = 0; // float scale values
 int show_track = 0; // set show_track = 1, if you want to visualize the trajectories
 
 bool DenseTrack(int argc, char** argv) {
@@ -39,6 +41,9 @@ bool DenseTrack(int argc, char** argv) {
 		cvNamedWindow( "DenseTrack", 0 );
 
 	std::vector<std::list<Track> > xyScaleTracks;
+	std::vector<float> fscales;
+	std::vector<CvSize> sizes;
+	//std::vector<cv::Mat> grey_pyramid, prev_grey_pyramid, flow_pyramid, prev_flow_pyramid;
 	int init_counter = 0; // indicate when to detect new feature points
 	while( true ) {
 		IplImageWrapper frame = 0;
@@ -53,7 +58,7 @@ bool DenseTrack(int argc, char** argv) {
 
 		// get a new frame
 		Mat2IplImageWrapper<uchar>(_frame, frame, 8, 3);
-
+		cxgAlleria::initPyramid(_frame.cols, _frame.rows, scale_num, scale_stride, fscales, sizes);
 		if( frameNum >= start_frame && frameNum <= end_frame ) {
 			if( frameNum == start_frame ) {
 				// initailize all the buffers
@@ -73,12 +78,10 @@ bool DenseTrack(int argc, char** argv) {
 
 				// how many scale we can have
 				scale_num = std::min<std::size_t>(scale_num, grey_pyramid.numOfLevels());
-				fscales = (float*)cvAlloc(scale_num*sizeof(float));
 				xyScaleTracks.resize(scale_num);
 
 				for( int ixyScale = 0; ixyScale < scale_num; ++ixyScale ) {
 					std::list<Track>& tracks = xyScaleTracks[ixyScale];
-					fscales[ixyScale] = pow(scale_stride, ixyScale);
 
 					// find good features at each scale separately
 					IplImage *grey_temp = 0, *eig_temp = 0;
@@ -86,7 +89,10 @@ bool DenseTrack(int argc, char** argv) {
 					grey_temp = cvCloneImage(grey_pyramid.getImage(temp_level));
 					eig_temp = cvCloneImage(eig_pyramid.getImage(temp_level));
 					std::vector<CvPoint2D32f> points(0);
-					cvDenseSample(grey_temp, eig_temp, points, quality, min_distance);
+					//cvDenseSample(grey_temp, eig_temp, points, quality, min_distance);
+					cv::Mat grey_mat;
+					IplImage2Mat<uchar>(grey_temp, grey_mat, CV_8UC1, 1);
+					cxgAlleria::DenseSample(grey_mat, points, quality, min_distance);
 
 					// save the feature points
 					for( i = 0; i < points.size(); i++ ) {
@@ -140,14 +146,17 @@ bool DenseTrack(int argc, char** argv) {
 					//-------------------------modified by Yikun Lin-----------------------
 					// compute the integral histograms
 					DescMat* hogMat = InitDescMat(height, width, hogInfo.nBins);
-					HogComp(prev_grey_temp, hogMat, hogInfo, kernelMatrix);
+					//HogComp(prev_grey_temp, hogMat, hogInfo, kernelMatrix);
+					cxgAlleria::HogComp(prev_grey_mat, hogMat, hogInfo, kMat);
 
 					DescMat* hofMat = InitDescMat(height, width, hofInfo.nBins);
-					HofComp(flow, hofMat, hofInfo, kernelMatrix);
+					//HofComp(flow, hofMat, hofInfo, kernelMatrix);
+					cxgAlleria::HofComp(flow_mat, hogMat, hofInfo, kMat);
 
 					DescMat* mbhMatX = InitDescMat(height, width, mbhInfo.nBins);
 					DescMat* mbhMatY = InitDescMat(height, width, mbhInfo.nBins);
-					MbhComp(flow, mbhMatX, mbhMatY, mbhInfo, kernelMatrix);
+					//MbhComp(flow, mbhMatX, mbhMatY, mbhInfo, kernelMatrix);
+					cxgAlleria::MbhComp(flow_mat, mbhMatX, mbhMatY, mbhInfo, kMat);
 
 					// calculate static saliency map
 					CvMat* staticSalMap = cvCreateMat(height, width, CV_32FC1);
@@ -357,7 +366,10 @@ bool DenseTrack(int argc, char** argv) {
 						std::size_t temp_level = (std::size_t)ixyScale;
 						grey_temp = cvCloneImage(grey_pyramid.getImage(temp_level));
 						eig_temp = cvCloneImage(eig_pyramid.getImage(temp_level));
-						cvDenseSample(grey_temp, eig_temp, points_in, points_out, quality, min_distance);
+						cv::Mat grey_mat = cv::cvarrToMat(grey_temp);
+						cxgAlleria::DenseSample(grey_mat, points_in, quality, min_distance);
+						points_out = points_in;
+						//cvDenseSample(grey_temp, eig_temp, points_in, points_out, quality, min_distance);
 
 						// save the new feature points
 						for( i = 0; i < points_out.size(); i++) {
