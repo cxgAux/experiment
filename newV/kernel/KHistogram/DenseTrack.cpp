@@ -151,7 +151,7 @@ bool DenseTrack(int argc, char** argv) {
 
 					DescMat* hofMat = InitDescMat(height, width, hofInfo.nBins);
 					//HofComp(flow, hofMat, hofInfo, kernelMatrix);
-					cxgAlleria::HofComp(flow_mat, hogMat, hofInfo, kMat);
+					cxgAlleria::HofComp(flow_mat, hofMat, hofInfo, kMat);
 
 					DescMat* mbhMatX = InitDescMat(height, width, mbhInfo.nBins);
 					DescMat* mbhMatY = InitDescMat(height, width, mbhInfo.nBins);

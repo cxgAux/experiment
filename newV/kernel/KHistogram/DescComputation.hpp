@@ -32,7 +32,7 @@ namespace cxgAlleria {
         const int _width = descMat->width,
             _height = descMat->height,
             _histDim = descMat->nBins,
-            _nBins = (descInfo.flagThre ? (descInfo.nBins - 1) : descInfo.nBins);
+            _nBins = descInfo.flagThre ? (descInfo.nBins - 1) : descInfo.nBins;
         const float _denseBase = (2 * M_PI) / float(kernelMatrix.rows);
         int _idx = 0;
 
@@ -153,7 +153,7 @@ namespace cxgAlleria {
     }
 
     void HogComp(const cv::Mat & img, DescMat * descMat, const DescInfo & descInfo, const cv::Mat & kernelMatrix) {
-        cv::Mat _imgX, _imgY;
+        cv::Mat imgf(img.size(), CV_32FC1), _imgX, _imgY;
         cv::Sobel(img, _imgX, CV_32F, 1, 0, 1);
         cv::Sobel(img, _imgY, CV_32F, 0, 1, 1);
         buildDescMat(_imgX, _imgY, descMat, descInfo, kernelMatrix);
@@ -168,8 +168,15 @@ namespace cxgAlleria {
     void MbhComp(const cv::Mat & flow, DescMat * descMatX, DescMat * descMatY, const DescInfo & descInfo, const cv::Mat & kernelMatrix) {
         cv::Mat flows[2];
         cv::split(flow, flows);
-        cv::addWeighted(flows[0], 100.f, flows[1], 0.f, 0.f, flows[0]);
-        cv::addWeighted(flows[0], 0, flows[1], 100.f, 0.f, flows[1]);
+        HREP (flow.rows) {
+            float
+                * _ptrX = flows[0].ptr<float>(iHeight),
+                * _ptrY = flows[1].ptr<float>(iHeight);
+            WREP (flow.cols) {
+                _ptrX[iWidth] *= 100.f;
+                _ptrY[iWidth] *= 100.f;
+            }
+        }
         HogComp(flows[0], descMatX, descInfo, kernelMatrix);
         HogComp(flows[1], descMatY, descInfo, kernelMatrix);
     }
