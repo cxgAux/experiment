@@ -237,13 +237,16 @@ bool DenseTrack(int argc, char** argv) {
 							PointDesc& pointDesc = iTrack->pointDescs.back();
 							CvPoint2D32f prev_point = points_in[i];
 							// get the descriptors for the feature point
-							CvScalar rect = getRect(prev_point, cvSize(width, height), hogInfo);
+							//CvScalar rect = getRect(prev_point, cvSize(width, height), hogInfo);
 							cxgAlleria::RectInfo rectInfo(prev_point, cvSize(width, height), hogInfo);
 							//pointDesc.hog = getDesc(hogMat, rect, hogInfo);
 							cxgAlleria::getDesc(hogMat, rectInfo, hogInfo, epsilon, pointDesc.hog);
-							pointDesc.hof = getDesc(hofMat, rect, hofInfo);
-							pointDesc.mbhX = getDesc(mbhMatX, rect, mbhInfo);
-							pointDesc.mbhY = getDesc(mbhMatY, rect, mbhInfo);
+							//pointDesc.hof = getDesc(hofMat, rect, hofInfo);
+							cxgAlleria::getDesc(hofMat, rectInfo, hofInfo, epsilon, pointDesc.hof);
+							//pointDesc.mbhX = getDesc(mbhMatX, rect, mbhInfo);
+							cxgAlleria::getDesc(mbhMatX, rectInfo, mbhInfo, epsilon, pointDesc.mbhX);
+							//pointDesc.mbhY = getDesc(mbhMatY, rect, mbhInfo);
+							cxgAlleria::getDesc(mbhMatY, rectInfo, mbhInfo, epsilon, pointDesc.mbhY);
 
 							PointDesc point(hogInfo, hofInfo, mbhInfo, points_out[i], saliency[i], averageSaliency);
 							iTrack->addPointDesc(point);
