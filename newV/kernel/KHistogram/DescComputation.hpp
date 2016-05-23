@@ -5,19 +5,18 @@ namespace cxgAlleria {
     #include "afx.hpp"
 
     typedef struct RectInfo {
-        int x, y, width, height, nBins;
-        RectInfo (int x, int y, int w, int h, int b)
-            : x(x), y(y), width(w), height(h) , nBins(b) {}
+        int x, y, width, height;
+        RectInfo (int x, int y, int w, int h)
+            : x(x), y(y), width(w), height(h)  {}
         RectInfo (const CvPoint2D32f & point, const CvSize & size, const DescInfo & descInfo) {
             const int _xMin = descInfo.blockWidth / 2,
                 _yMin = descInfo.blockHeight / 2,
                 _xMax = size.width - descInfo.blockWidth,
                 _yMax = size.height - descInfo.blockHeight;
-            this->x = std::min<int>(std::max<int>(point.x - _xMin, 0), _xMax);
-            this->y = std::min<int>(std::min<int>(point.y - _yMin, 0), _yMax);
+            this->x = static_cast<int>(std::min<float>(std::max<float>(point.x - _xMin, 0), _xMax));
+            this->y = static_cast<int>(std::min<float>(std::max<float>(point.y - _yMin, 0), _yMax));
             this->width = descInfo.blockWidth;
             this->height = descInfo.blockHeight;
-            this->nBins = descInfo.nBins;
         }
         ~RectInfo() {}
     };
@@ -124,7 +123,7 @@ namespace cxgAlleria {
                 }
             }
         }
-
+        float _response = 0.f;
         if(1 == descInfo.norm) {
             float _absSum = 0.f;
             for (std::vector<float>::const_iterator it = desc.begin(); it != desc.end(); ++ it) {
@@ -132,6 +131,7 @@ namespace cxgAlleria {
             }
             for (std::vector<float>::iterator it = desc.begin(); it != desc.end(); ++ it) {
                 *it /= _absSum;
+                _response += (*it) * (*it);
             }
         }
         else {
@@ -142,18 +142,14 @@ namespace cxgAlleria {
             _powSum = std::sqrt(_powSum);
             for (std::vector<float>::iterator it = desc.begin(); it != desc.end(); ++ it) {
                 *it /= _powSum;
+                _response += (*it) * (*it);
             }
-        }
-
-        float _response = 0.f;
-        for (std::vector<float>::const_iterator it = desc.begin(); it != desc.end(); ++ it) {
-            _response += (*it) * (*it);
         }
         return _response;
     }
 
     void HogComp(const cv::Mat & img, DescMat * descMat, const DescInfo & descInfo, const cv::Mat & kernelMatrix) {
-        cv::Mat imgf(img.size(), CV_32FC1), _imgX, _imgY;
+        cv::Mat _imgX, _imgY;
         cv::Sobel(img, _imgX, CV_32F, 1, 0, 1);
         cv::Sobel(img, _imgY, CV_32F, 0, 1, 1);
         buildDescMat(_imgX, _imgY, descMat, descInfo, kernelMatrix);

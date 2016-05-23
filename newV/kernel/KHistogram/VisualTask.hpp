@@ -40,6 +40,16 @@ namespace cxgAlleria {
             }
         }
     }
+
+    void OpticalFlowTracker(
+        const cv::Mat & flow,
+        const cv::Mat & salMap,
+        std::vector<CvPoint2D32f> & points,
+        std::vector<bool> & status,
+        std::vector<float> & saliency
+    ) {
+        
+    }
 }
 
 #endif// ! _VISUALTASK_HPP

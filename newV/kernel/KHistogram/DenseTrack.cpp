@@ -238,7 +238,9 @@ bool DenseTrack(int argc, char** argv) {
 							CvPoint2D32f prev_point = points_in[i];
 							// get the descriptors for the feature point
 							CvScalar rect = getRect(prev_point, cvSize(width, height), hogInfo);
-							pointDesc.hog = getDesc(hogMat, rect, hogInfo);
+							cxgAlleria::RectInfo rectInfo(prev_point, cvSize(width, height), hogInfo);
+							//pointDesc.hog = getDesc(hogMat, rect, hogInfo);
+							cxgAlleria::getDesc(hogMat, rectInfo, hogInfo, epsilon, pointDesc.hog);
 							pointDesc.hof = getDesc(hofMat, rect, hofInfo);
 							pointDesc.mbhX = getDesc(mbhMatX, rect, mbhInfo);
 							pointDesc.mbhY = getDesc(mbhMatY, rect, mbhInfo);
