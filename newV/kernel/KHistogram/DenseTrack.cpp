@@ -7,10 +7,7 @@
 #include "DescComputation.hpp"
 #include "AppearanceSaliency.hpp"
 #include "MotionSaliency.hpp"
-#include "cast.hpp"
 
-IplImageWrapper image, prev_image, grey, prev_grey;
-IplImagePyramid grey_pyramid, prev_grey_pyramid, eig_pyramid;
 int show_track = 0; // set show_track = 1, if you want to visualize the trajectories
 
 bool DenseTrack(int argc, char** argv) {
@@ -38,62 +35,42 @@ bool DenseTrack(int argc, char** argv) {
 	cv::Mat kMat = cv::cvarrToMat(kernelMatrix);
 
 	if( show_track == 1 )
-		cvNamedWindow( "DenseTrack", 0 );
+		cv::namedWindow( "DenseTrack", 0 );
 
 	std::vector<std::list<Track> > xyScaleTracks;
 	std::vector<float> fscales;
-	std::vector<CvSize> sizes;
-	//std::vector<cv::Mat> grey_pyramid, prev_grey_pyramid, flow_pyramid, prev_flow_pyramid;
+	std::vector<cv::Size> sizes;
+	cv::Mat frame, grey;
+	std::vector<cv::Mat> greys_pyramid, prev_greys_pyramid, flow_pyramid;
 	int init_counter = 0; // indicate when to detect new feature points
 	while( true ) {
-		IplImageWrapper frame = 0;
-		cv::Mat _frame;
-		capture >> _frame;
-
-		if(_frame.empty()) {
+		capture >> frame;
+		if(frame.empty()) {
 			break;
 		}
 
 		int i, j, c;
 
-		// get a new frame
-		Mat2IplImageWrapper<uchar>(_frame, frame, 8, 3);
-		cxgAlleria::initPyramid(_frame.cols, _frame.rows, scale_num, scale_stride, fscales, sizes);
+		cxgAlleria::initPyramid(frame.cols, frame.rows, scale_num, scale_stride, fscales, sizes);
+		xyScaleTracks.resize(scale_num);
 		if( frameNum >= start_frame && frameNum <= end_frame ) {
 			if( frameNum == start_frame ) {
 				// initailize all the buffers
-				image = IplImageWrapper( cvGetSize(frame), 8, 3 );
-				image->origin = frame->origin;
-				prev_image= IplImageWrapper( cvGetSize(frame), 8, 3 );
-				prev_image->origin = frame->origin;
-				grey = IplImageWrapper( cvGetSize(frame), 8, 1 );
-				grey_pyramid = IplImagePyramid( cvGetSize(frame), 8, 1, scale_stride );
-				prev_grey = IplImageWrapper( cvGetSize(frame), 8, 1 );
-				prev_grey_pyramid = IplImagePyramid( cvGetSize(frame), 8, 1, scale_stride );
-				eig_pyramid = IplImagePyramid( cvGetSize(frame), 32, 1, scale_stride );
+				grey.create(frame.size(), CV_8UC1);
+				cxgAlleria::buildPyramid(sizes, greys_pyramid, CV_8UC1);
+				cxgAlleria::buildPyramid(sizes, prev_greys_pyramid, CV_8UC1);
+				cxgAlleria::buildPyramid(sizes, flow_pyramid, CV_32FC2);
 
-				cvCopy( frame, image, 0 );
-				cvCvtColor( image, grey, CV_BGR2GRAY );
-				grey_pyramid.rebuild( grey );
+				cv::cvtColor(frame, grey, CV_BGR2GRAY);
 
-				// how many scale we can have
-				scale_num = std::min<std::size_t>(scale_num, grey_pyramid.numOfLevels());
-				xyScaleTracks.resize(scale_num);
+				cxgAlleria::setPyramid(grey, prev_greys_pyramid);
 
 				for( int ixyScale = 0; ixyScale < scale_num; ++ixyScale ) {
 					std::list<Track>& tracks = xyScaleTracks[ixyScale];
 
 					// find good features at each scale separately
-					IplImage *grey_temp = 0, *eig_temp = 0;
-					std::size_t temp_level = (std::size_t)ixyScale;
-					grey_temp = cvCloneImage(grey_pyramid.getImage(temp_level));
-					eig_temp = cvCloneImage(eig_pyramid.getImage(temp_level));
 					std::vector<CvPoint2D32f> points(0);
-					//cvDenseSample(grey_temp, eig_temp, points, quality, min_distance);
-					cv::Mat grey_mat;
-					IplImage2Mat<uchar>(grey_temp, grey_mat, CV_8UC1, 1);
-					cxgAlleria::DenseSample(grey_mat, points, quality, min_distance);
-
+					cxgAlleria::DenseSample(prev_greys_pyramid[ixyScale], points, quality, min_distance);
 					// save the feature points
 					for( i = 0; i < points.size(); i++ ) {
 						Track track(tracker.trackLength);
@@ -101,16 +78,14 @@ bool DenseTrack(int argc, char** argv) {
 						track.addPointDesc(point);
 						tracks.push_back(track);
 					}
-
-					cvReleaseImage( &grey_temp );
-					cvReleaseImage( &eig_temp );
 				}
+				frameNum ++;
+				continue;
 			}
 
 			// build the image pyramid for the current frame
-			cvCopy( frame, image, 0 );
-			cvCvtColor( image, grey, CV_BGR2GRAY );
-			grey_pyramid.rebuild(grey);
+			cv::cvtColor(frame, grey, CV_BGR2GRAY );
+			cxgAlleria::setPyramid(grey, greys_pyramid);
 
 			if( frameNum > start_frame ) {
 				init_counter++;
@@ -122,57 +97,40 @@ bool DenseTrack(int argc, char** argv) {
 						CvPoint2D32f point = iTrack->pointDescs.back().point;
 						points_in.push_back(point); // collect all the feature points
 					}
-					int count = points_in.size();
-					IplImage *prev_grey_temp = 0, *grey_temp = 0;
-					std::size_t temp_level = ixyScale;
-					prev_grey_temp = cvCloneImage(prev_grey_pyramid.getImage(temp_level));
-					grey_temp = cvCloneImage(grey_pyramid.getImage(temp_level));
-
-					cv::Mat prev_grey_mat = cv::cvarrToMat(prev_grey_temp);
-					cv::Mat grey_mat = cv::cvarrToMat(grey_temp);
-
 
 					// compute the optical flow
-					IplImage* flow = cvCreateImage(cvGetSize(grey_temp), IPL_DEPTH_32F, 2);
-					cv::Mat flow_mat = cv::cvarrToMat(flow);
-					cv::calcOpticalFlowFarneback( prev_grey_mat, grey_mat, flow_mat,
+					cv::calcOpticalFlowFarneback(prev_greys_pyramid[ixyScale], greys_pyramid[ixyScale], flow_pyramid[ixyScale],
 									sqrt(2)/2.0, 5, 10, 2, 7, 1.5, cv::OPTFLOW_FARNEBACK_GAUSSIAN );
 					// prevImg(y, x) = nextImg(y + flow(y, x)[1], x + flow(y, x)[0])?
 					// the point (y,x) of previous image move to (y + flow(y, x)[1], x + flow(y, x)[0]) of next image
 
-					int width = grey_temp->width;
-					int height = grey_temp->height;
+					int width = greys_pyramid[ixyScale].cols, height = greys_pyramid[ixyScale].rows;
 					//--------------------------------begin--------------------------------
 					//-------------------------modified by Yikun Lin-----------------------
 					// compute the integral histograms
 					DescMat* hogMat = InitDescMat(height, width, hogInfo.nBins);
 					//HogComp(prev_grey_temp, hogMat, hogInfo, kernelMatrix);
-					cxgAlleria::HogComp(prev_grey_mat, hogMat, hogInfo, kMat);
+					cxgAlleria::HogComp(prev_greys_pyramid[ixyScale], hogMat, hogInfo, kMat);
 
 					DescMat* hofMat = InitDescMat(height, width, hofInfo.nBins);
 					//HofComp(flow, hofMat, hofInfo, kernelMatrix);
-					cxgAlleria::HofComp(flow_mat, hofMat, hofInfo, kMat);
+					cxgAlleria::HofComp(flow_pyramid[ixyScale], hofMat, hofInfo, kMat);
 
 					DescMat* mbhMatX = InitDescMat(height, width, mbhInfo.nBins);
 					DescMat* mbhMatY = InitDescMat(height, width, mbhInfo.nBins);
 					//MbhComp(flow, mbhMatX, mbhMatY, mbhInfo, kernelMatrix);
-					cxgAlleria::MbhComp(flow_mat, mbhMatX, mbhMatY, mbhInfo, kMat);
+					cxgAlleria::MbhComp(flow_pyramid[ixyScale], mbhMatX, mbhMatY, mbhInfo, kMat);
 
 					// calculate static saliency map
-					CvMat* staticSalMap = cvCreateMat(height, width, CV_32FC1);
 
 					//hog to calc the staticsaliencymap?
 					// function api for calcstaticsaliency...
 
 					//float staticSaliency = sal.CalcStaticSaliencyMap(prev_grey_temp, staticSalMap, true);
-					cv::Mat ss(height, width, CV_32F, 1);
-					float staticSaliency = cxgAlleria::CalcStaticSaliencyMap(prev_grey_mat, ss);
-					//printf("sal : %f\n", staticSaliency);
-					//getchar();
-					CvMat tt = ss;
-					cvCopy(&tt, staticSalMap);
+					cv::Mat staticSalMap(height, width, CV_32F, 1);
+					float staticSaliency = cxgAlleria::CalcStaticSaliencyMap(prev_greys_pyramid[ixyScale], staticSalMap);
 
-					if( show_track == 1 ) {
+					/*if( show_track == 1 ) {
 						IplImage* pImg = cvCreateImage(cvGetSize(staticSalMap), IPL_DEPTH_32F, 1);
 						cvConvert(staticSalMap, pImg);
 						char str[20];
@@ -180,16 +138,12 @@ bool DenseTrack(int argc, char** argv) {
 						if (ixyScale == 0)
 							cvSaveImage(str, pImg);
 						cvReleaseImage( &pImg );
-					}
+					}*/
 
 					// calculate dynamic saliency map
-					CvMat* dynamicSalMap = cvCreateMat(height, width, CV_32FC1);
-					//float dynamicSaliency = sal.CalcMotionSaliencyMap(flow, hofInfo, kernelMatrix, dynamicSalMap, true);
-					cv::Mat sss(height, width, CV_32F, 1);
-					float dynamicSaliency = cxgAlleria::CalcMotionSaliencyMap(flow_mat, hofInfo, kMat, sss);
-					CvMat ttt = sss;
-					cvCopy(&ttt, dynamicSalMap);
-					if( show_track == 1 ) {
+					cv::Mat dynamicSalMap(height, width, CV_32F, 1);
+					float dynamicSaliency = cxgAlleria::CalcMotionSaliencyMap(flow_pyramid[ixyScale], hofInfo, kMat, dynamicSalMap);
+					/*if( show_track == 1 ) {
 						IplImage* pImg = cvCreateImage(cvGetSize(dynamicSalMap), IPL_DEPTH_32F, 1);
 						cvConvert(dynamicSalMap, pImg);
 						char str[20];
@@ -197,19 +151,12 @@ bool DenseTrack(int argc, char** argv) {
 						if (ixyScale == 0)
 							cvSaveImage(str, pImg);
 						cvReleaseImage( &pImg );
-					}
+					}*/
 
 					// calculate combined saliency map
-					CvMat* salMap = cvCreateMat(height, width, CV_32FC1);
-					for(int iHeight = 0; iHeight < height; iHeight++) {
-						float* pMap = (float*)(salMap->data.ptr + iHeight * salMap->step);
-						float* pStaticMap = (float*)(staticSalMap->data.ptr + iHeight * staticSalMap->step);
-						float* pDynamicMap = (float*)(dynamicSalMap->data.ptr + iHeight * dynamicSalMap->step);
-						for(int iWidth = 0; iWidth < width; iWidth++) {
-							pMap[iWidth] = staticRatio * pStaticMap[iWidth] + dynamicRatio * pDynamicMap[iWidth];
-						}
-					}
-					if( show_track == 1 ) {
+					cv::Mat salMap(height, width, CV_32F, 1);
+					cv::addWeighted(staticSalMap, staticRatio, dynamicSalMap, dynamicRatio, 0.f, salMap);
+					/*if( show_track == 1 ) {
 						IplImage* pImg = cvCreateImage(cvGetSize(salMap), IPL_DEPTH_32F, 1);
 						cvConvert(salMap, pImg);
 						char str[20];
@@ -217,23 +164,20 @@ bool DenseTrack(int argc, char** argv) {
 						if (ixyScale == 0)
 							cvSaveImage(str, pImg);
 						cvReleaseImage( &pImg );
-					}
+					}*/
+					int count = points_in.size();
 					float averageSaliency = staticRatio * staticSaliency + dynamicRatio * dynamicSaliency;
-					std::vector<int> status(count);
+					std::vector<bool> status(count);
 					std::vector<CvPoint2D32f> points_out(count);
 					std::vector<float> saliency(count);
 
 					// track feature points by median filtering
-					OpticalFlowTracker(flow, salMap, points_in, points_out, status, saliency);
-
-					cvReleaseMat(&salMap);
-					cvReleaseMat(&dynamicSalMap);
-					cvReleaseMat(&staticSalMap);
+					cxgAlleria::OpticalFlowTracker(flow_pyramid[ixyScale], salMap, points_in, points_out, status, saliency);
 					//---------------------------------end---------------------------
 
 					i = 0;
 					for (std::list<Track>::iterator iTrack = tracks.begin(); iTrack != tracks.end(); ++i) {
-						if( status[i] == 1 ) { // if the feature point is successfully tracked
+						if( status[i] ) { // if the feature point is successfully tracked
 							PointDesc& pointDesc = iTrack->pointDescs.back();
 							CvPoint2D32f prev_point = points_in[i];
 							// get the descriptors for the feature point
@@ -259,9 +203,6 @@ bool DenseTrack(int argc, char** argv) {
 					ReleDescMat(hofMat);
 					ReleDescMat(mbhMatX);
 					ReleDescMat(mbhMatY);
-					cvReleaseImage( &prev_grey_temp );
-					cvReleaseImage( &grey_temp );
-					cvReleaseImage( &flow );
 				}
 				for( int ixyScale = 0; ixyScale < scale_num; ++ixyScale ) {
 					std::list<Track>& tracks = xyScaleTracks[ixyScale]; // output the features for each scale
@@ -327,7 +268,7 @@ bool DenseTrack(int argc, char** argv) {
 								}
 
 								printf("\n");
-								if( show_track == 1 ) {
+								/*if( show_track == 1 ) {
 									std::list<PointDesc>& descs = iTrack->pointDescs;
 									std::list<PointDesc>::iterator iDesc = descs.begin();
 									float length = descs.size();
@@ -346,7 +287,7 @@ bool DenseTrack(int argc, char** argv) {
 										point0 = point1;
 									}
 									cvCircle(image, cvPointFrom32f(point0), 2, CV_RGB(255,0,0), -1, 8,0);
-								}
+								}*/
 							}
 							iTrack = tracks.erase(iTrack);
 						}
@@ -366,15 +307,8 @@ bool DenseTrack(int argc, char** argv) {
 							CvPoint2D32f point = descs.back().point; // the last point in the track
 							points_in.push_back(point);
 						}
-
-						IplImage *grey_temp = 0, *eig_temp = 0;
-						std::size_t temp_level = (std::size_t)ixyScale;
-						grey_temp = cvCloneImage(grey_pyramid.getImage(temp_level));
-						eig_temp = cvCloneImage(eig_pyramid.getImage(temp_level));
-						cv::Mat grey_mat = cv::cvarrToMat(grey_temp);
-						cxgAlleria::DenseSample(grey_mat, points_in, quality, min_distance);
+						cxgAlleria::DenseSample(greys_pyramid[ixyScale], points_in, quality, min_distance);
 						points_out = points_in;
-						//cvDenseSample(grey_temp, eig_temp, points_in, points_out, quality, min_distance);
 
 						// save the new feature points
 						for( i = 0; i < points_out.size(); i++) {
@@ -383,21 +317,20 @@ bool DenseTrack(int argc, char** argv) {
 							track.addPointDesc(point);
 							tracks.push_back(track);
 						}
-						cvReleaseImage( &grey_temp );
-						cvReleaseImage( &eig_temp );
 					}
 				}
 			}
 			frameNum ++;
-			cvCopy( frame, prev_image, 0 );
-			cvCvtColor( prev_image, prev_grey, CV_BGR2GRAY );
-			prev_grey_pyramid.rebuild(prev_grey);
+
+			for (int ixyScale = 0; ixyScale < scale_num; ++ixyScale) {
+				greys_pyramid[ixyScale].copyTo(prev_greys_pyramid[ixyScale]);
+			}
 		}
 		else {
 			frameNum ++;
 		}
 
-		if( show_track == 1 ) {
+		/*if( show_track == 1 ) {
 			char str[20];
 			sprintf(str, "traj/%d.jpg", frameNum);
 			cvSaveImage(str, image);
@@ -405,11 +338,8 @@ bool DenseTrack(int argc, char** argv) {
 			cvShowImage( "DenseTrack", image);
 			c = cvWaitKey(3);
 			if((char)c == 27) break;
-		}
+		}*/
 	}
-
-	if( show_track == 1 )
-		cvDestroyWindow("DenseTrack");
 
 	cvReleaseMat(&kernelMatrix);
 	return true;

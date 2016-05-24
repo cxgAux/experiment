@@ -17,8 +17,6 @@
 #include <list>
 #include <string>
 
-#include <opencv/IplImageWrapper.h>
-#include <opencv/IplImagePyramid.h>
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
@@ -47,7 +45,7 @@ const float max_dis = 20;
 //const int max_points = 100;
 
 // parameters for multi-scale
-static int scale_num = 8;  
+static int scale_num = 8;
 const float scale_stride = sqrt(2);
 
 typedef struct TrackerInfo
@@ -64,12 +62,12 @@ typedef struct DescInfo
     float threshold; //threshold for normalization
 	int flagThre; // whether thresholding or not
     int nxCells; // number of cells in x direction
-    int nyCells; 
+    int nyCells;
     int ntCells;
 	int dim; // dimension of the descriptor
     int blockHeight; // size of the block for computing the descriptor
     int blockWidth;
-}DescInfo; 
+}DescInfo;
 
 typedef struct DescMat
 {

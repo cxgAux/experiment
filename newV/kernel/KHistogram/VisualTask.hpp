@@ -44,11 +44,46 @@ namespace cxgAlleria {
     void OpticalFlowTracker(
         const cv::Mat & flow,
         const cv::Mat & salMap,
-        std::vector<CvPoint2D32f> & points,
+        const std::vector<CvPoint2D32f> & points_in,
+        std::vector<CvPoint2D32f> & points_out,
         std::vector<bool> & status,
         std::vector<float> & saliency
     ) {
-        
+        points_out.clear();
+        status.clear();
+        saliency.clear();
+
+        int _width = flow.cols, _height = flow.rows;
+        std::vector<float> _xFilter, _yFilter, _sFilter;
+        for(const auto & _point : points_in) {
+            _xFilter.clear(); _yFilter.clear(); _sFilter.clear();
+            const int _x = cvFloor(_point.x), _y = cvFloor(_point.y);
+            for (int _xOff = -1; _xOff <= 1; ++ _xOff) {
+                for (int _yOff = -1; _yOff <= 1; ++ _yOff) {
+                    const int _x_ = std::min<int>(std::max<int>(_x + _xOff, 0), _width - 1),
+                        _y_ = std::min<int>(std::max<int>(_y + _yOff, 0), _height - 1);
+                    const float * _pFlow = flow.ptr<float>(_y_);
+                    _xFilter.push_back(_pFlow[2 * _x_]);
+                    _yFilter.push_back(_pFlow[2 * _x_ + 1]);
+                    _sFilter.push_back(salMap.at<float>(_y_, _x_));
+                }
+            }
+            std::sort(_xFilter.begin(), _xFilter.end());
+            std::sort(_yFilter.begin(), _yFilter.end());
+            std::sort(_sFilter.begin(), _sFilter.end());
+
+            const size_t _midIdx = _xFilter.size() / 2;
+            const float _xMid = _point.x + _xFilter[_midIdx], _yMid = _point.y + _yFilter[_midIdx];
+            points_out.push_back(cvPoint2D32f(_xMid, _yMid));
+            saliency.push_back(_sFilter[_midIdx]);
+
+            if(_xMid > 0 && _xMid < _width && _yMid > 0 && _yMid < _height) {
+                status.push_back(true);
+            }
+            else {
+                status.push_back(false);
+            }
+        }
     }
 }
 
