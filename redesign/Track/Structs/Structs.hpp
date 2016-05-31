@@ -24,7 +24,7 @@ namespace Structs {
         ~TrackerInfo();
     };
 
-    struct DescInfo {
+    typedef struct DescInfo {
         struct CubeInfo {
             int m_iXCells, m_iYCells, m_iTCells, m_iBlockWidth, m_iBlockHeight;
             CubeInfo (const int, const int, const int, const int, const int);
@@ -38,6 +38,18 @@ namespace Structs {
         DescInfo & operator= (const DescInfo &);
         virtual ~DescInfo ();
         int getDim () const;
+        virtual bool isValid (const float) const;
+        virtual int getBin () const;
+    } HogInfo, MbhInfo;
+
+    struct HofInfo : public DescInfo {
+        float m_fThreshold;
+        explicit HofInfo (const int, const int, const int, const int, const int, const int, const int, const float);
+        explicit HofInfo (const HofInfo &);
+        HofInfo & operator= (const HofInfo &);
+        ~HofInfo ();
+        virtual bool isValid (const float) const final;
+        virtual int getBin () const final;
     };
 
     struct DescMat {
@@ -49,30 +61,42 @@ namespace Structs {
         ~DescMat ();
     };
 
-    struct Points {
-        std::vector<cv::Point2f> m_points;
-        explicit Points ();
-        Points (const Points &) = delete;
-        Points & operator= (const Points &) = delete;
-        virtual ~Points ();
-    };
-
-    struct Histogram {
+    struct PointDesc {
+        cv::Point2f m_point;
         std::vector<float> m_hog, m_hof, m_mbhX, m_mbhY;
-        explicit Histogram ();
-        virtual ~Histogram ();
+        explicit PointDesc ();
+        explicit PointDesc (const cv::Point2f &);
+        explicit PointDesc (const PointDesc &);
+        PointDesc & operator= (const PointDesc &) = delete;
+        ~PointDesc ();
+        bool isValid (const HogInfo &, const HofInfo &, const MbhInfo &) const;
     };
 
-    struct Trajectory : public Points, public Histogram {
-        int m_iLength, m_iCapacity;
-        explicit Trajectory (const int, const int);
+    struct Trajectory {
+    public:
+        const static char m_cDelimiter = '\t';
+        int m_iCapacity;
+        std::list<PointDesc> m_pointDescs;
+        explicit Trajectory (const int);
+        explicit Trajectory (const Trajectory &);
+        Trajectory & operator= (const Trajectory &) = delete;
         virtual ~Trajectory ();
+        void addPoint (const cv::Point2f &);
+        virtual bool isValid (const HogInfo &, const HofInfo &, const MbhInfo &) const;
+        bool isEnded () const;
+        void print (const HogInfo &, const HofInfo &, const MbhInfo &) const;
+        void drawOn (cv::Mat &, const cv::Point2f &, const float) const;
     };
 
     struct SalientTrajectory : public Trajectory {
-        int m_iSaliency;
-        explicit SalientTrajectory (const int, const int);
+    public:
+        float m_fSaliency, m_fRatio;
+        explicit SalientTrajectory (const int, const float);
+        explicit SalientTrajectory (const SalientTrajectory &);
+        SalientTrajectory & operator= (const SalientTrajectory &) = delete;
         ~SalientTrajectory ();
+        void addPoint (const cv::Point2f &, const float, const float);
+        bool isSalient () const;
     };
 }
 

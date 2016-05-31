@@ -12,6 +12,11 @@ namespace Attributes {
      }
 
      namespace Descriptor {
+
+         const static       int     hogBins     =   8;
+         const static       int     hofBins     =   9;
+         const static       int     mbhBins     =   8;
+
          namespace MultiScale {
              static         int     scale_num   =   8;
              const static   float   scale_stride=   std::sqrt(2.f);
@@ -26,7 +31,7 @@ namespace Attributes {
 
          namespace Hof {
              static         float   epsilon     =   .05f;
-             static         float   min_float   =   0.4 * 0.4;
+             static         float   min_flow    =   0.4 * 0.4;
          }
      }
 
@@ -44,8 +49,14 @@ namespace Attributes {
 
      namespace Mode {
          static         bool        toDisplay       =   false;
+         const static   int         delay           =   30;
          static         bool        toPreserve      =   false;
      }
+
+    namespace KernelMatrix {
+        static          float       radius          =   5.f;
+        const static    int         denseBins       =   3600;
+    }
 }
 
 #endif// ! _ATTRIBUTES_HPP_
