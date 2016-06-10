@@ -1,5 +1,5 @@
 #include "Track.hpp"
-#include "argParse.hpp"
+#include "track_argParse.hpp"
 #include "Initialize.hpp"
 #include "Visual.hpp"
 #include "Descriptor.hpp"
@@ -118,7 +118,7 @@ void Track (int argc, char * const argv[]) {
 						_mbhYMat (_width, _height, _mbhInfo.m_iBin);
 
 					Descriptor::HogComp (_prev_greys_pyramid [iScale], _hogMat, _hogInfo, _kernelMatrix);
-					Descriptor::HofComp (_flows_pyramid [iScale], _hogMat, _hofInfo, _kernelMatrix);
+					Descriptor::HofComp (_flows_pyramid [iScale], _hofMat, _hofInfo, _kernelMatrix);
 					Descriptor::MbhComp (_flows_pyramid [iScale], _mbhXMat, _mbhYMat, _mbhInfo, _kernelMatrix);
 
 					cv::Mat _asm(_height, _width, CV_32FC1), _msm(_height, _width, CV_32FC1), _sm(_height, _width, CV_32FC1);
@@ -147,8 +147,17 @@ void Track (int argc, char * const argv[]) {
 					for (std::list<Structs::SalientTrajectory>::iterator _itt = _iTracker.begin (); _itt != _iTracker.end (); ++ _idx) {
 						if (_status[_idx]) {// if successfully tracked
 							cv::Point2f & _prev_point = _points[iScale][_idx];
+							float _xOff = _points_out[_idx].x * _fscales[_idx] - _prev_point.x * _fscales[_idx],
+								_yOff = _points_out[_idx].y * _fscales[_idx] - _prev_point.y * _fscales[_idx];
+							if (std::isnan (_xOff)) {
+								_xOff = 0;
+							}
+							if (std::isnan (_yOff)) {
+								_yOff = 0;
+							}
+							cv::Point2f _offset (_xOff, _yOff);
 							Descriptor::RectInfo _rectInfo (_prev_point, cv::Size (_width, _height), _hogInfo);
-							_itt->addPoint (_prev_point, _saliencies[_idx], _s);
+							_itt->addPoint (_prev_point, _offset, _saliencies[_idx], _s);
 							Structs::PointDesc & _point_desc = _itt->m_pointDescs.back ();
 							Descriptor::getDesc (_hogMat, _rectInfo, _hogInfo, Attributes::Descriptor::Hof::epsilon, _point_desc.m_hog);
 							Descriptor::getDesc (_hofMat, _rectInfo, _hofInfo, Attributes::Descriptor::Hof::epsilon, _point_desc.m_hof);

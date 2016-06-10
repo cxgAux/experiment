@@ -1,5 +1,5 @@
-#ifndef _ATTRIBUTES_HPP_
-#define _ATTRIBUTES_HPP_
+#ifndef _TRACK_ATTRIBUTES_HPP_
+#define _TRACK_ATTRIBUTES_HPP_
 
 namespace Attributes {
      namespace Tracking {
@@ -31,7 +31,7 @@ namespace Attributes {
 
          namespace Hof {
              static         float   epsilon     =   .05f;
-             static         float   min_flow    =   0.4 * 0.4;
+             static         float   min_flow    =   0.4f * 0.4f;
          }
      }
 
@@ -59,4 +59,4 @@ namespace Attributes {
     }
 }
 
-#endif// ! _ATTRIBUTES_HPP_
+#endif// ! _TRACK_ATTRIBUTES_HPP_

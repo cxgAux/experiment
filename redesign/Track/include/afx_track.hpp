@@ -14,8 +14,8 @@
 #endif// ! _ENABLE_MACROS_
 
 #include "afx.hpp"
-#include "Attributes/Attributes.hpp"
-#include "Structs/Structs.hpp"
+#include "Attributes/track_Attributes.hpp"
+#include "Structs/track_Structs.hpp"
 
 
 #endif// ! _AFX_TRACK_HPP

@@ -1,5 +1,5 @@
-#ifndef _STRUCTS_HPP_
-#define _STRUCTS_HPP_
+#ifndef _TRACK_STRUCTS_HPP_
+#define _TRACK_STRUCTS_HPP_
 
 #ifndef _ENABLE_OPENCV_
 #define _ENABLE_OPENCV_
@@ -62,10 +62,10 @@ namespace Structs {
     };
 
     struct PointDesc {
-        cv::Point2f m_point;
+        cv::Point2f m_point, m_offset;
         std::vector<float> m_hog, m_hof, m_mbhX, m_mbhY;
         explicit PointDesc ();
-        explicit PointDesc (const cv::Point2f &);
+        explicit PointDesc (const cv::Point2f &, const cv::Point2f &);
         explicit PointDesc (const PointDesc &);
         PointDesc & operator= (const PointDesc &) = delete;
         ~PointDesc ();
@@ -77,11 +77,12 @@ namespace Structs {
         const static char m_cDelimiter = '\t';
         int m_iCapacity;
         std::list<PointDesc> m_pointDescs;
+        float m_fTotalOffset;
         explicit Trajectory (const int);
         explicit Trajectory (const Trajectory &);
         Trajectory & operator= (const Trajectory &) = delete;
         virtual ~Trajectory ();
-        void addPoint (const cv::Point2f &);
+        void addPoint (const cv::Point2f &, const cv::Point2f &);
         virtual bool isValid (const HogInfo &, const HofInfo &, const MbhInfo &) const;
         bool isEnded () const;
         void print (const HogInfo &, const HofInfo &, const MbhInfo &) const;
@@ -95,9 +96,9 @@ namespace Structs {
         explicit SalientTrajectory (const SalientTrajectory &);
         SalientTrajectory & operator= (const SalientTrajectory &) = delete;
         ~SalientTrajectory ();
-        void addPoint (const cv::Point2f &, const float, const float);
+        void addPoint (const cv::Point2f &, const cv::Point2f &, const float, const float);
         bool isSalient () const;
     };
 }
 
-#endif// ! _STRUCTS_HPP_
+#endif// ! _TRACK_STRUCTS_HPP_

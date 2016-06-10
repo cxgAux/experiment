@@ -1,4 +1,4 @@
-#include "Structs.hpp"
+#include "track_Structs.hpp"
 
 namespace Structs {
     TrackerInfo::TrackerInfo (const int trajLength, const int initGap) : m_iTrajLength (trajLength), m_iInitGap (initGap) {}
@@ -86,11 +86,11 @@ namespace Structs {
 namespace Structs {
     PointDesc::PointDesc () {}
 
-    PointDesc::PointDesc (const cv::Point2f & point)
-        : m_point (point) {}
+    PointDesc::PointDesc (const cv::Point2f & point, const cv::Point2f & offset)
+        : m_point (point), m_offset (offset) {}
 
     PointDesc::PointDesc (const PointDesc & point_desc)
-        : m_point (point_desc.m_point), m_hog (point_desc.m_hog), m_hof (point_desc.m_hof), m_mbhX (point_desc.m_mbhX), m_mbhY (point_desc.m_mbhY) {}
+        : m_point (point_desc.m_point), m_offset (point_desc.m_offset), m_hog (point_desc.m_hog), m_hof (point_desc.m_hof), m_mbhX (point_desc.m_mbhX), m_mbhY (point_desc.m_mbhY) {}
 
     PointDesc::~PointDesc () {}
 
@@ -103,15 +103,16 @@ namespace Structs {
     }
 
     Trajectory::Trajectory (const int capcacity)
-        : m_iCapacity (capcacity), m_pointDescs (0) {}
+        : m_iCapacity (capcacity), m_pointDescs (0), m_fTotalOffset (0.f) {}
 
     Trajectory::Trajectory (const Trajectory & traj)
-        :  m_iCapacity (traj.m_iCapacity), m_pointDescs (traj.m_pointDescs) {}
+        :  m_iCapacity (traj.m_iCapacity), m_pointDescs (traj.m_pointDescs), m_fTotalOffset (traj.m_fTotalOffset) {}
 
     Trajectory::~Trajectory() {}
 
-    void Trajectory::addPoint (const cv::Point2f & point) {
-        this->m_pointDescs.push_back (PointDesc (point));
+    void Trajectory::addPoint (const cv::Point2f & point, const cv::Point2f & offset) {
+        this->m_pointDescs.push_back (PointDesc (point, offset));
+        this->m_fTotalOffset += std::sqrt (offset.x * offset.x + offset.y * offset.y);
     }
 
     bool Trajectory::isValid (const HogInfo & hogInfo, const HofInfo & hofInfo, const MbhInfo & mbhInfo) const {
@@ -188,7 +189,15 @@ namespace Structs {
             }
         }
 
-        std::cout << std::endl;
+        std::vector<float> _trajShape;
+        for (const auto & _iDesc : this->m_pointDescs) {
+            _trajShape.push_back (_iDesc.m_offset.x / this->m_fTotalOffset);
+            _trajShape.push_back (_iDesc.m_offset.y / this->m_fTotalOffset);
+        }
+        for (const auto & _val : _trajShape) {
+            std::cout << _val<< m_cDelimiter;
+        }
+        std::cout << "\n";
     }
 
     void Trajectory::drawOn (cv::Mat & image, const cv::Point2f & endPoint, const float fscale) const {
@@ -216,12 +225,12 @@ namespace Structs {
 
     SalientTrajectory::~SalientTrajectory () {}
 
-    void SalientTrajectory::addPoint (const cv::Point2f & point, const float trajSaliency, const float frameSaliency) {
-        Trajectory::addPoint (point);
+    void SalientTrajectory::addPoint (const cv::Point2f & point, const cv::Point2f & offset, const float trajSaliency, const float frameSaliency) {
+        Trajectory::addPoint (point, offset);
         this->m_fSaliency += trajSaliency - this->m_fRatio * frameSaliency;
     }
 
     bool SalientTrajectory::isSalient () const {
-        return this->m_fSaliency >= 0;
+        return this->m_fTotalOffset != 0 && this->m_fSaliency >= 0;
     }
 }
