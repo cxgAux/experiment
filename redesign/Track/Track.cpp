@@ -10,7 +10,9 @@ void Track (int argc, char * const argv[]) {
 	/**
 	 *	@brief	parse arguments
 	 */
-	const char * const videoName = arg_parse(argc, argv);
+	Parser::ArgParser_Track _argParser;
+	_argParser (argc, argv);
+	const char * const videoName = _argParser.m_videoName;
 	assert(videoName != nullptr);
 	cv::VideoCapture _capture(videoName);
 	if(_capture.isOpened() == false) {
@@ -50,7 +52,6 @@ void Track (int argc, char * const argv[]) {
 	std::vector<bool> _status;
 	std::vector<cv::Point2f> _points_out;
 	std::vector<float> _saliencies;
-
 	int _count_to_sample = 0, _frameNum = 0;
 
 	/**
@@ -147,17 +148,8 @@ void Track (int argc, char * const argv[]) {
 					for (std::list<Structs::SalientTrajectory>::iterator _itt = _iTracker.begin (); _itt != _iTracker.end (); ++ _idx) {
 						if (_status[_idx]) {// if successfully tracked
 							cv::Point2f & _prev_point = _points[iScale][_idx];
-							float _xOff = _points_out[_idx].x * _fscales[_idx] - _prev_point.x * _fscales[_idx],
-								_yOff = _points_out[_idx].y * _fscales[_idx] - _prev_point.y * _fscales[_idx];
-							if (std::isnan (_xOff)) {
-								_xOff = 0;
-							}
-							if (std::isnan (_yOff)) {
-								_yOff = 0;
-							}
-							cv::Point2f _offset (_xOff, _yOff);
 							Descriptor::RectInfo _rectInfo (_prev_point, cv::Size (_width, _height), _hogInfo);
-							_itt->addPoint (_prev_point, _offset, _saliencies[_idx], _s);
+							_itt->addPoint (_prev_point, _saliencies[_idx], _s);
 							Structs::PointDesc & _point_desc = _itt->m_pointDescs.back ();
 							Descriptor::getDesc (_hogMat, _rectInfo, _hogInfo, Attributes::Descriptor::Hof::epsilon, _point_desc.m_hog);
 							Descriptor::getDesc (_hofMat, _rectInfo, _hofInfo, Attributes::Descriptor::Hof::epsilon, _point_desc.m_hof);
@@ -169,7 +161,7 @@ void Track (int argc, char * const argv[]) {
 								if (_itt->isSalient ()) {// if it is salient
 									_itt->print(_hogInfo, _hofInfo, _mbhInfo);
 									if (Attributes::Mode::toDisplay) {
-										_itt->drawOn (_frame, _points_out[_idx], _fscales[_idx]);
+										_itt->drawOn (_frame, _points_out[_idx], _fscales[iScale]);
 									}
 								}
 								//remove all ended trajectories

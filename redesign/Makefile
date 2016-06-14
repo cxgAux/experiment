@@ -1,5 +1,5 @@
 # set the binaries that have to be built
-TARGETS := Track SelectFeatures 
+TARGETS := SelectFeatures Cluster EncodeFeatures ComputeDistance ComputeKernelMatrix TrainAndTest 
 
 # set the build configuration set
 #BUILD := release

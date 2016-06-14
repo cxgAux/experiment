@@ -86,11 +86,11 @@ namespace Structs {
 namespace Structs {
     PointDesc::PointDesc () {}
 
-    PointDesc::PointDesc (const cv::Point2f & point, const cv::Point2f & offset)
-        : m_point (point), m_offset (offset) {}
+    PointDesc::PointDesc (const cv::Point2f & point)
+        : m_point (point) {}
 
     PointDesc::PointDesc (const PointDesc & point_desc)
-        : m_point (point_desc.m_point), m_offset (point_desc.m_offset), m_hog (point_desc.m_hog), m_hof (point_desc.m_hof), m_mbhX (point_desc.m_mbhX), m_mbhY (point_desc.m_mbhY) {}
+        : m_point (point_desc.m_point), m_hog (point_desc.m_hog), m_hof (point_desc.m_hof), m_mbhX (point_desc.m_mbhX), m_mbhY (point_desc.m_mbhY) {}
 
     PointDesc::~PointDesc () {}
 
@@ -103,16 +103,15 @@ namespace Structs {
     }
 
     Trajectory::Trajectory (const int capcacity)
-        : m_iCapacity (capcacity), m_pointDescs (0), m_fTotalOffset (0.f) {}
+        : m_iCapacity (capcacity), m_pointDescs (0) {}
 
     Trajectory::Trajectory (const Trajectory & traj)
-        :  m_iCapacity (traj.m_iCapacity), m_pointDescs (traj.m_pointDescs), m_fTotalOffset (traj.m_fTotalOffset) {}
+        :  m_iCapacity (traj.m_iCapacity), m_pointDescs (traj.m_pointDescs) {}
 
     Trajectory::~Trajectory() {}
 
-    void Trajectory::addPoint (const cv::Point2f & point, const cv::Point2f & offset) {
-        this->m_pointDescs.push_back (PointDesc (point, offset));
-        this->m_fTotalOffset += std::sqrt (offset.x * offset.x + offset.y * offset.y);
+    void Trajectory::addPoint (const cv::Point2f & point) {
+        this->m_pointDescs.push_back (PointDesc (point));
     }
 
     bool Trajectory::isValid (const HogInfo & hogInfo, const HofInfo & hofInfo, const MbhInfo & mbhInfo) const {
@@ -188,15 +187,6 @@ namespace Structs {
                 std::cout << _desc / _tStride << m_cDelimiter;
             }
         }
-
-        std::vector<float> _trajShape;
-        for (const auto & _iDesc : this->m_pointDescs) {
-            _trajShape.push_back (_iDesc.m_offset.x / this->m_fTotalOffset);
-            _trajShape.push_back (_iDesc.m_offset.y / this->m_fTotalOffset);
-        }
-        for (const auto & _val : _trajShape) {
-            std::cout << _val<< m_cDelimiter;
-        }
         std::cout << "\n";
     }
 
@@ -204,14 +194,14 @@ namespace Structs {
         int _len = int(m_pointDescs.size()), _idx = 0;
         cv::Point _prev, _cur;
         for (const auto & val : this->m_pointDescs) {
-            _cur = cv::Point (val.m_point.x * fscale, val.m_point.y * fscale);
+            _cur = cv::Point2f (val.m_point.x * fscale, val.m_point.y * fscale);
             if (_idx != 0) {
                 cv::line (image, _prev, _cur, CV_RGB (0, cvFloor (255.0 * _idx / _len), 0), 2, 8, 0);
             }
             _idx ++;
             _prev = _cur;
         }
-        _cur = cv::Point (endPoint.x * fscale, endPoint.y * fscale);
+        _cur = cv::Point2f (endPoint.x * fscale, endPoint.y * fscale);
         cv::line (image, _prev, _cur, CV_RGB (0, cvFloor (255.0 * _idx / _len), 0), 2, 8, 0);
         cv::circle (image, endPoint, 2, CV_RGB (255, 0, 0), -1, 8, 0);
     }
@@ -225,12 +215,12 @@ namespace Structs {
 
     SalientTrajectory::~SalientTrajectory () {}
 
-    void SalientTrajectory::addPoint (const cv::Point2f & point, const cv::Point2f & offset, const float trajSaliency, const float frameSaliency) {
-        Trajectory::addPoint (point, offset);
+    void SalientTrajectory::addPoint (const cv::Point2f & point, const float trajSaliency, const float frameSaliency) {
+        Trajectory::addPoint (point);
         this->m_fSaliency += trajSaliency - this->m_fRatio * frameSaliency;
     }
 
     bool SalientTrajectory::isSalient () const {
-        return this->m_fTotalOffset != 0 && this->m_fSaliency >= 0;
+        return this->m_fSaliency >= 0;
     }
 }

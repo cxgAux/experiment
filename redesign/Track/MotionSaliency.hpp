@@ -94,12 +94,7 @@ namespace MotionSaliency {
     			_xoff = std::min<int> (_xoff, 0);
     			_pSalMap[iWidth] = 0.f;
     			if (Saliency::GetIntegralSum (intImg, iWidth - _xoff, iHeight - _yoff, iWidth + _xoff, iHeight + _yoff, _height, _width, _nBins, _point) > 0) {
-    				REP_BIN (_nBins) {
-    					const float _diff = _point[iBin] - _surround[iBin], _sum = _point[iBin] + _surround[iBin];
-    					if (_sum > 0) {
-    						_pSalMap[iWidth] += 0.5f * _diff * _diff / _sum;
-                        }
-                    }
+    				_pSalMap[iWidth] = AFX::Measure::_chisquareDistanceHandler (_point, _surround);
     			}
     		}
     	}

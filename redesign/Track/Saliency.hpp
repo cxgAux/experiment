@@ -132,6 +132,14 @@ namespace Saliency {
         return _response;
     }
 
+    void calculateWeight (const float fas, const float fms) {
+        //ref : Improving Human Action Recognition by Non-action Classification 5.1
+        //  a balance between max-pooling and average-pooling
+        Attributes::Saliency::static_ratio = std::exp (- 0.5 * fms);
+        Attributes::Saliency::dynamic_ratio = std::exp (- 0.5 * fas);
+        Attributes::normalizedRatios ();
+    }
+
     void addWeight (const cv::Mat & as, const float fas, const cv::Mat & ms, const float fms, cv::Mat & s, float & fs) {
         cv::addWeighted (as, Attributes::Saliency::static_ratio, ms, Attributes::Saliency::dynamic_ratio, 0.f, s);
         fs = Attributes::Saliency::static_ratio * fas + Attributes::Saliency::dynamic_ratio * fms;
