@@ -39,11 +39,12 @@ std::vector<int> randPerm (int p, int q) throw (std::exception) {
 	if (p < 0 || q < 0 || p > q) {
 		throw std::logic_error ("randPerm: error paras!");
 	}
+	unsigned int _seed = std::chrono::system_clock::now ().time_since_epoch ().count ();
 	std::vector<int> _res;
 	for (int i = 0; i < q; ++ i) {
 		_res.push_back (i);
 	}
-	std::random_shuffle (_res.begin (), _res.end ());
+	std::shuffle (_res.begin (), _res.end (), std::default_random_engine (_seed));
 	_res.resize (p);
 	std::sort(_res.begin  (), _res.end ());
 	return _res;
