@@ -38,6 +38,7 @@ namespace Attributes {
      namespace Saliency {
          static         float       static_ratio    =   .5f;
          static         float       dynamic_ratio   =   .5f;
+		 static			float		alpha			=	.5f;
          static         float       salient_ratio   =   1.5f;
      }
 

@@ -11,12 +11,12 @@ namespace Parser {
 		explicit ArgParser_Track ();
 		~ArgParser_Track ();
 		inline void operator () (ArgNo, Args const []) final;
-		mutable char * m_videoName;
+		char * m_videoName;
 	protected:
 		inline void usage () final;
 		inline void errorHandler (int) final;
 	private:
-		mutable char * m_executable;
+		char * m_executable;
 	};
 }
 
@@ -29,7 +29,7 @@ namespace Parser {
 		int c = -1;
 		this->m_executable = basename(argv[0]);
 		this->m_videoName = nullptr;
-		while((c = getopt (argc, argv, "hS:E:L:W:N:d:en:pv:s:x:y:t:")) != -1) {
+		while((c = getopt (argc, argv, "hS:E:L:W:N:d:en:pv:s:x:y:t:a:")) != -1) {
 			switch(c) {
 				case 'S':
 					Attributes::Tracking::start_frame = atoi (optarg);
@@ -80,6 +80,9 @@ namespace Parser {
 					this->usage ();
 					exit (0);
 				break;
+				case 'a':
+					Attributes::Saliency::alpha = atof (optarg);
+					break;
 				default:
 					this->errorHandler (c);
 			}
@@ -105,6 +108,7 @@ namespace Parser {
 		std::cerr << "  -x [spatial x cells]      The number of cells in the nx axis (default: nx=2 cells)\n";
 		std::cerr << "  -y [spatial y cells]      The number of cells in the ny axis (default: ny=2 cells)\n";
 		std::cerr << "  -t [temporal cells]       The number of cells in the nt axis (default: nt=3 cells)\n";
+		std::cerr << "  -a [pooling balance]      The balance factor between max pooling and average pooling\n";
 	}
 
 	void ArgParser_Track::errorHandler (int opt) {

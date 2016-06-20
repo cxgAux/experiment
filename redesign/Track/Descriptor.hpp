@@ -82,7 +82,7 @@ namespace Descriptor {
         }
     }
 
-    float getDesc (
+    void getDesc (
         const Structs::DescMat & descMat,
         const RectInfo & rectInfo,
         const Structs::DescInfo & descInfo,
@@ -136,29 +136,12 @@ namespace Descriptor {
         /**
          *  @brief  modify to lamda expr
          */
-        float _response = 0.f;
         if (1 == descInfo.m_iNormType) {
-            float _absSum = 0.f;
-            for (std::vector<float>::const_iterator it = desc.begin(); it != desc.end(); ++ it) {
-                _absSum += std::fabs(*it);
-            }
-            for (std::vector<float>::iterator it = desc.begin(); it != desc.end(); ++ it) {
-                *it /= _absSum;
-                _response += (*it) * (*it);
-            }
+            DEBUG_ASSERT (AFX::Normalize::_l1Normalizer (desc));
         }
         else {
-            float _powSum = 0.f;
-            for (std::vector<float>::const_iterator it = desc.begin(); it != desc.end(); ++ it) {
-                _powSum += (*it) * (*it);
-            }
-            _powSum = std::sqrt(_powSum);
-            for (std::vector<float>::iterator it = desc.begin(); it != desc.end(); ++ it) {
-                *it /= _powSum;
-                _response += (*it) * (*it);
-            }
+            DEBUG_ASSERT (AFX::Normalize::_l2Normalizer (desc));
         }
-        return _response;
     }
 
     void HogComp(const cv::Mat & img, Structs::DescMat & descMat, const Structs::DescInfo & descInfo, const cv::Mat & kernelMatrix) {
