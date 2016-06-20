@@ -38,7 +38,7 @@ void EncodeFeatures (int argc, char * const argv []) {
 	_gzfd.open (_argParser.m_featureSrc);
 	std::ifstream _if (_argParser.m_codeBookSrc, std::ios::in);
 	DEBUG_ASSERT (_if.is_open ())
-	const int _szcb = Attributes::Cluster::K, _st = _argParser.m_iStart, _dim =_argParser.m_codeBookDim;
+	const int _szcb = Attributes::Cluster::K, _opt = _argParser.m_iStart, _dim =_argParser.m_codeBookDim;
 	float **_codebook = new float * [_szcb];
 	REP_ROW (_szcb) {
 		_codebook[iRow] = new float [_dim];
@@ -52,11 +52,36 @@ void EncodeFeatures (int argc, char * const argv []) {
 	}
 
 	while (_gzfd.readLine ()) {
-		Structs::Feature::split (_gzfd.m_line, _line); 
+		Structs::Feature::split (_gzfd.m_line, _line);
 		int _bestIdx = 0;
 		float _bestDis = _measurer.getWorst ();
 		REP_ROW (_szcb) {
-			float _dis = _measurer (_codebook[iRow], _line + _st, _dim);
+			int _ptr = 0, _realPtr = 0;
+			if ((_opt >> 2) & 0x0001) {
+				REP_BIN (Attributes::Dimension::hog) {
+					_line[_realPtr ++] = _line[_ptr ++];
+				}
+			}
+			else {
+				_ptr += Attributes::Dimension::hog;
+			}
+			if ((_opt >> 1) & 0x001) {
+				REP_BIN (Attributes::Dimension::hof) {
+					_line[_realPtr ++] = _line[_ptr ++];
+				}
+			}
+			else {
+				_ptr += Attributes::Dimension::hof;
+			}
+			if ((_opt >> 0) & 0x001) {
+				REP_BIN (Attributes::Dimension::mbh) {
+					_line[_realPtr ++] = _line[_ptr ++];
+				}
+			}
+			else {
+				_ptr += Attributes::Dimension::mbh;
+			}
+			float _dis = _measurer (_codebook[iRow], _line, _realPtr);
 			if (_measurer.isBetter (_dis, _bestDis)) {
 				_bestIdx = iRow;
 				_bestDis = _dis;
@@ -137,7 +162,7 @@ namespace Parser {
 
 	void ArgParser_Encode::usage () {
 		std::cerr << "Encode features with providing CodeBook\n\n";
-		std::cerr << "Usage: EncodeFeatures -f [feature src formatted *.gz] -c [CodeBook] -s [feature start index] -d [codebook dim] -t [video class tag] [options]\n";
+		std::cerr << "Usage: EncodeFeatures -f [feature src formatted *.gz] -c [CodeBook] -s [feature options] -d [codebook dim] -t [video class tag] [options]\n";
 		std::cerr << "Options:\n";
 		std::cerr << "  -h                        Display this message and exit\n";
 		std::cerr << "  -m                        Measure type [default euclidean distance, alternative: eu(Euclidean_distance) | ma(Manhattan_distance) | co(Cosine_similarity)]\n";
