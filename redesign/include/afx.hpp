@@ -138,6 +138,56 @@ namespace AFX {
             inline virtual ResultType operator() (ParameterType *, ParameterType *, const int) const final;
         };
     }
+
+    namespace Normalize {
+        template < class ParameterType>
+        struct Normalizer {
+            typedef ParameterType Type;
+            typedef size_t Size;
+            typedef Type * Pointer;
+            typedef std::vector<Type> Vec;
+            inline virtual bool operator () (Vec &) const = 0;
+            inline virtual bool operator () (Pointer, const Size) const = 0;
+        protected:
+            inline virtual Type getNorm (const Vec &) const = 0;
+            inline virtual Type getNorm (Pointer, const Size) const = 0;
+            inline virtual bool normable (const Type) const = 0;
+        };
+
+        template < class ParameterType>
+        struct DivNormalizer : public Normalizer<ParameterType> {
+            typedef typename Normalizer<ParameterType>::Type Type;
+            typedef typename Normalizer<ParameterType>::Size Size;
+            typedef typename Normalizer<ParameterType>::Pointer Pointer;
+            typedef typename Normalizer<ParameterType>::Vec Vec;
+            inline virtual bool operator () (Vec &) const final;
+            inline virtual bool operator () (Pointer, const Size) const final;
+        protected:
+            inline virtual bool normable (const Type) const final;
+        };
+
+        template < class ParameterType>
+        struct L1Normalizer : public DivNormalizer<ParameterType> {
+            typedef typename DivNormalizer<ParameterType>::Type Type;
+            typedef typename DivNormalizer<ParameterType>::Size Size;
+            typedef typename DivNormalizer<ParameterType>::Pointer Pointer;
+            typedef typename DivNormalizer<ParameterType>::Vec Vec;
+        protected:
+            inline virtual Type getNorm (const Vec &) const;
+            inline virtual Type getNorm (Pointer, const Size) const;
+        };
+
+        template < class ParameterType>
+        struct L2Normalizer : public DivNormalizer<ParameterType> {
+            typedef typename DivNormalizer<ParameterType>::Type Type;
+            typedef typename DivNormalizer<ParameterType>::Size Size;
+            typedef typename DivNormalizer<ParameterType>::Pointer Pointer;
+            typedef typename DivNormalizer<ParameterType>::Vec Vec;
+        protected:
+            inline virtual Type getNorm (const Vec &) const;
+            inline virtual Type getNorm (Pointer, const Size) const;
+        };
+    }
 }
 
 namespace AFX {
@@ -255,11 +305,92 @@ namespace AFX {
             }
             return _fs / (std::sqrt (_ff) * std::sqrt (_ss));
         }
+    }
 
+    namespace Normalize {
+        template < class ParameterType>
+        bool DivNormalizer<ParameterType>::normable (const DivNormalizer::Type norm) const {
+            return norm != 0;
+        }
+
+        template < class ParameterType>
+        bool DivNormalizer<ParameterType>::operator () (DivNormalizer::Vec & vec) const {
+            Type _norm = this->getNorm (vec);
+            if (this->normable (_norm)) {
+                for (auto & val : vec) {
+                    val /= _norm;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        template < class ParameterType>
+        bool DivNormalizer<ParameterType>::operator () (DivNormalizer::Pointer ptr, const DivNormalizer::Size size) const {
+            Type _norm = this->getNorm (ptr, size);
+            if (this->normable (_norm)) {
+                for (size_t _idx = 0; _idx < size; ++ _idx) {
+                    ptr[_idx] /= _norm;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        template < class ParameterType>
+        typename L1Normalizer<ParameterType>::Type L1Normalizer<ParameterType>::getNorm (const L1Normalizer::Vec & vec) const {
+            Type _norm (0);
+            for (const auto & val : vec) {
+                _norm += std::abs (val);
+            }
+            return _norm;
+        }
+
+        template < class ParameterType>
+        typename L1Normalizer<ParameterType>::Type L1Normalizer<ParameterType>::getNorm (L1Normalizer::Pointer ptr, const L1Normalizer::Size size) const {
+            Type _norm (0);
+            for (size_t _idx = 0; _idx < size; ++ _idx) {
+                _norm += std::abs (ptr[_idx]);
+            }
+            return _norm;
+        }
+
+        template < class ParameterType>
+        typename L2Normalizer<ParameterType>::Type L2Normalizer<ParameterType>::getNorm (const L2Normalizer::Vec & vec) const {
+            Type _norm (0);
+            for (const auto & val : vec) {
+                _norm += val * val;
+            }
+            return std::sqrt (_norm);
+        }
+
+        template < class ParameterType>
+        typename L2Normalizer<ParameterType>::Type L2Normalizer<ParameterType>::getNorm (L2Normalizer::Pointer ptr, const L2Normalizer::Size size) const {
+            Type _norm (0);
+            for (size_t _idx = 0; _idx < size; ++ _idx) {
+                _norm += ptr[_idx] * ptr[_idx];
+            }
+            return std::sqrt (_norm);
+        }
+    }
+}
+
+
+namespace AFX {
+    namespace Parser {
+
+    }
+
+    namespace Measure {
         static EuclideanDistance<float, float> _euclideanDistanceHandler;
         static ChiSquareDistance<float, float> _chisquareDistanceHandler;
         static ManhattanDistance<float, float> _manhattanDistanceHandler;
         static CosineSimilarity<float, float> _cosineSimilarityHandler;
+    }
+
+    namespace Normalize {
+        static L1Normalizer<float> _l1Normalizer;
+        static L2Normalizer<float> _l2Normalizer;
     }
 }
 
